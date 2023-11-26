@@ -1,0 +1,3 @@
+[submodule "submodules/lib-avstack-core"]
+	path = submodules/lib-avstack-core
+	url = https://github.com/avstack-lab/lib-avstack-core

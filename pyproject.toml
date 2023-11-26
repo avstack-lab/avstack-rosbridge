@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "avstack_bridge_ros"
+version = "0.1.0-alpha.1"
+description = "AVstack ROS bridge"
+authors = ["Spencer Hallyburton <spencer@shally.dev>"]
+readme = "README.md"
+license = "MIT License"
+repository = "https://github.com/percep-tech/jumpstreet.git"
+keywords = ["computer vision", "perception", "tracking", "replay"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+]
+
+[tool.poetry.dependencies]
+python = "~3.10"
+lib-avstack-core = {path="./submodules/lib-avstack-core", develop=true}
+avstack_bridge = {path="./avstack_bridge/", develop=true}
+opencv-python = "=4.5.5.64"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7"
+pytest-cov = "^4"
+bandit = "^1.7"
+black = "~22.12.0"
+mypy = "^0"
+isort = "^5.11"
+flake8 = "^5.0"
+autoflake = "^1"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q -s"
+testpaths = [
+    "tests",
+    "integration",
+]
+
+[build-system]
+requires = [
+    "poetry-core",
+]
+build-backend = "poetry.core.masonry.api"

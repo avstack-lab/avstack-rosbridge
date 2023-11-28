@@ -1,12 +1,7 @@
-import sys
-
 from sensor_msgs.msg import CameraInfo
+from utilities import camera_calib
 
 from avstack_bridge.calibration import CameraCalibrationBridge
-
-
-sys.path.append("tests/")
-from utilities import camera_calib
 
 
 def test_calib_to_caminfo():

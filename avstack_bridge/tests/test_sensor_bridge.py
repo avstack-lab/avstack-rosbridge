@@ -1,14 +1,9 @@
-import sys
-
 import numpy as np
 from avstack.sensors import ImageData
 from sensor_msgs.msg import Image
+from utilities import camera_calib
 
 from avstack_bridge.sensors import CameraSensorBridge
-
-
-sys.path.append("tests/")
-from utilities import camera_calib
 
 
 t = 0.0

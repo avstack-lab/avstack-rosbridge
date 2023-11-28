@@ -5,7 +5,18 @@ from avstack.calibration import (
     LidarCalibration,
     RadarCalibration,
 )
-from avstack.geometry import GlobalOrigin3D, ReferenceFrame, q_stan_to_cam
+from avstack.environment.objects import VehicleState
+from avstack.geometry import (
+    Acceleration,
+    AngularVelocity,
+    Attitude,
+    Box3D,
+    GlobalOrigin3D,
+    Position,
+    ReferenceFrame,
+    Velocity,
+    q_stan_to_cam,
+)
 
 
 # -- calibration data
@@ -28,3 +39,16 @@ camera_calib = CameraCalibration(ref_camera, P_cam, img_shape)
 box_calib = Calibration(ref_camera)
 lidar_calib = LidarCalibration(ref_lidar)
 radar_calib = RadarCalibration(ref_lidar, fov_horizontal=np.pi, fov_vertical=np.pi / 2)
+
+
+def get_object_global(seed, reference=GlobalOrigin3D):
+    np.random.seed(seed)
+    pos_obj = Position(10 * np.random.rand(3), reference)
+    rot_obj = Attitude(q_stan_to_cam, reference)
+    box_obj = Box3D(pos_obj, rot_obj, [2, 2, 5])  # box in local coordinates
+    vel_obj = Velocity(10 * np.random.rand(3), reference)
+    acc_obj = Acceleration(np.random.rand(3), reference)
+    ang_obj = AngularVelocity(np.quaternion(1), reference)
+    obj = VehicleState("car")
+    obj.set(0, pos_obj, box_obj, vel_obj, acc_obj, rot_obj, ang_obj)
+    return obj

@@ -2,4 +2,4 @@
 
 std_msgs/Header header
 
-ObjectState[] obj_state
+ObjectState[] states

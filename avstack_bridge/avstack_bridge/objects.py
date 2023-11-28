@@ -13,6 +13,10 @@ class ObjectStateBridge(Bridge):
     def __init__(self) -> None:
         self.geom_bridge = GeometryBridge()
 
+    ##########################################
+    # ROS --> AVstack
+    ##########################################
+
     def header_from_avstack(self, obj_state: ObjectStateAV, tf_buffer=None) -> Header:
         if obj_state.reference != GlobalOrigin3D:
             if tf_buffer is None:
@@ -61,6 +65,23 @@ class ObjectStateBridge(Bridge):
             ),
         )
         return obj_state
+
+    def objectstatearray_to_avstack(
+        self, msg_objarray, tf_buffer=None
+    ) -> list[ObjectStateAV]:
+        header = msg_objarray.header
+        obj_states = []
+        for obj in msg_objarray.states:
+            msg_obj = ObjectStateStamped(header=header, state=obj)
+            obj_state = self.objectstate_to_avstack(
+                msg_obj=msg_obj, tf_buffer=tf_buffer
+            )
+            obj_states.append(obj_state)
+        return obj_states
+
+    ##########################################
+    # AVstack --> ROS
+    ##########################################
 
     def avstack_to_objectstate(
         self, obj_state: ObjectStateAV, tf_buffer=None

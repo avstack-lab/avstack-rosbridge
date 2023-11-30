@@ -14,8 +14,9 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "~3.10"
-lib-avstack-core = {path="./submodules/lib-avstack-core", develop=true}
-lib-avstack-api = {path="./submodules/lib-avstack-api", develop=true}
+# HACK: to use in other projects with their own deps
+#lib-avstack-core = {path="./submodules/lib-avstack-core", develop=true}
+#lib-avstack-api = {path="./submodules/lib-avstack-api", develop=true}
 avstack_bridge = {path="./avstack_bridge/", develop=true}
 opencv-python = "=4.5.5.64"
 

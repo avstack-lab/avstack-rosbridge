@@ -1,5 +1,4 @@
 from avstack.environment.objects import ObjectState as ObjectStateAV
-from avstack.geometry import GlobalOrigin3D
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import Header
 
@@ -17,20 +16,9 @@ class ObjectStateBridge(Bridge):
     # ROS --> AVstack
     ##########################################
 
-    def header_from_avstack(self, obj_state: ObjectStateAV, tf_buffer=None) -> Header:
-        if obj_state.reference != GlobalOrigin3D:
-            if tf_buffer is None:
-                raise RuntimeError("tf buffer must exist if origin is not world")
-            else:
-                frame_id = None  # TODO
-                raise
-        else:
-            frame_id = "world"
-            rostime = self.time_to_rostime(obj_state.reference.timestamp)
-            header = Header(stamp=rostime, frame_id=frame_id)
-        return header
-
-    def objectstate_to_avstack(self, msg_obj, tf_buffer=None) -> ObjectStateAV:
+    def objectstate_to_avstack(
+        self, msg_obj: ObjectState | ObjectStateStamped, tf_buffer=None
+    ) -> ObjectStateAV:
         if isinstance(msg_obj, ObjectState):
             obj = msg_obj
             timestamp = None
@@ -84,9 +72,9 @@ class ObjectStateBridge(Bridge):
     ##########################################
 
     def avstack_to_objectstate(
-        self, obj_state: ObjectStateAV, tf_buffer=None
-    ) -> ObjectStateStamped:
-        header = self.header_from_avstack(obj_state, tf_buffer)
+        self,
+        obj_state: ObjectStateAV,
+    ) -> ObjectState:
         state = ObjectState(
             obj_type=obj_state.obj_type,
             position=self.geom_bridge.avstack_to_position(
@@ -107,16 +95,30 @@ class ObjectStateBridge(Bridge):
             angular_acceleration=Vector3(),  # TODO: we don't have this in avstack
             box=self.geom_bridge.avstack_to_box3d(obj_state.box, stamped=False),
         )
-        obj_state = ObjectStateStamped(header=header, state=state)
-        return obj_state
+        return state
+
+    def avstack_to_objectstatestamped(
+        self,
+        obj_state: ObjectStateAV,
+        tf_buffer=None,
+        frame_override=None,
+    ) -> ObjectStateStamped:
+        header = self.reference_to_header(
+            obj_state.reference, tf_buffer, frame_override=frame_override
+        )
+        state = self.avstack_to_objectstate(obj_state)
+        return ObjectStateStamped(header=header, state=state)
 
     def avstack_to_objecstatearray(
-        self, obj_states, tf_buffer=None
+        self,
+        obj_states,
+        tf_buffer=None,
+        frame_override=None,
     ) -> ObjectStateArray:
         if len(obj_states) == 0:
             raise NotImplementedError("How do we get header without objects?")
-        header = self.header_from_avstack(obj_states[0], tf_buffer)
-        states = [
-            self.avstack_to_objectstate(obj, tf_buffer).state for obj in obj_states
-        ]
+        header = self.reference_to_header(
+            obj_states[0].reference, tf_buffer, frame_override=frame_override
+        )
+        states = [self.avstack_to_objectstate(obj) for obj in obj_states]
         return ObjectStateArray(header=header, states=states)

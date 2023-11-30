@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 from avstack.geometry import (
     Acceleration,
@@ -13,7 +15,7 @@ from avstack.geometry import (
 from geometry_msgs.msg import Point, Pose, Quaternion, Vector3
 from std_msgs.msg import Header
 from tf2_ros.buffer import Buffer
-from vision_msgs.msg import BoundingBox3D
+from vision_msgs.msg import BoundingBox3D, BoundingBox3DArray
 
 from .base import Bridge
 
@@ -119,12 +121,28 @@ class GeometryBridge(Bridge):
         header: Header | None,
         tf_buffer: Buffer | None,
     ) -> Box3D:
-        reference = cls.header_to_reference(header=header, tf_buffer=tf_buffer)
+        # reference = cls.header_to_reference(header=header, tf_buffer=tf_buffer)
         position, attitude = cls.pose_to_avstack(
             box.center, header=header, tf_buffer=tf_buffer
         )
         hwl = [box.size.z, box.size.y, box.size.x]  # TODO: is this the right order?
         return Box3D(position=position, attitude=attitude, hwl=hwl)
+
+    @classmethod
+    def box3d_array_to_avstack(
+        cls,
+        boxes: BoundingBox3DArray,
+        tf_buffer: Buffer | None,
+    ) -> List[Box3D]:
+        header = boxes.header
+        boxes = [
+            box if isinstance(box, BoundingBox3D) else box.box for box in boxes.boxes
+        ]
+        boxes_av = [
+            cls.box3d_to_avstack(box=box, header=header, tf_buffer=tf_buffer)
+            for box in boxes
+        ]
+        return boxes_av
 
     ###################################################
     # AVstack --> ROS methods
@@ -229,3 +247,17 @@ class GeometryBridge(Bridge):
             x=float(box.l), y=float(box.w), z=float(box.h)
         )  # TODO: is this the right order?
         return BoundingBox3D(center=center, size=size)
+
+    @classmethod
+    def avstack_to_box3d_array(
+        cls, boxes: List[Box3D], tf_buffer: Buffer | None = None, frame_override=None
+    ) -> BoundingBox3DArray:
+        if len(boxes) == 0:
+            return BoundingBox3DArray()
+        else:
+            header = cls.reference_to_header(
+                boxes[0].reference, tf_buffer=tf_buffer, frame_override=frame_override
+            )
+        boxes = [box if isinstance(box, Box3D) else box.box for box in boxes]  # HACK
+        boxes_ros = [cls.avstack_to_box3d(box, stamped=False) for box in boxes]
+        return BoundingBox3DArray(header=header, boxes=boxes_ros)

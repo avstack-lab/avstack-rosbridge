@@ -58,7 +58,9 @@ class Bridge:
         time: Time,
         tf_buffer: Buffer,
     ) -> ReferenceFrame:
-        tr = cls.frameid_to_tf2(to_frame=to_frame, from_frame=from_frame, time=time)
+        tr = cls.frameid_to_tf2(
+            to_frame=to_frame, from_frame=from_frame, time=time, tf_buffer=tf_buffer
+        )
         if from_frame != "world":
             tran_world_2_from = cls.frameid_to_tf2(
                 to_frame=from_frame,
@@ -132,13 +134,25 @@ class Bridge:
 
     @classmethod
     def reference_to_header(
-        cls, reference: ReferenceFrame, timestamp: float | None = None
+        cls,
+        reference: ReferenceFrame,
+        tf_buffer: Buffer | None = None,
+        frame_override=None,
     ) -> Header:
-        stamp = cls.time_to_rostime(
-            reference.timestamp if timestamp is None else timestamp
-        )
-        frame_id = cls.reference_to_frameid(reference)
-        return Header(stamp=stamp, frame_id=frame_id)
+        rostime = cls.time_to_rostime(reference.timestamp)
+        if frame_override:
+            frame_id = frame_override
+        else:
+            if reference != GlobalOrigin3D:
+                if tf_buffer is None:
+                    raise RuntimeError("tf buffer must exist if origin is not world")
+                else:
+                    frame_id = None  # TODO
+                    raise
+            else:
+                frame_id = "world"
+        header = Header(stamp=rostime, frame_id=frame_id)
+        return header
 
     @classmethod
     def reference_to_frameid(cls, reference: ReferenceFrame) -> str:

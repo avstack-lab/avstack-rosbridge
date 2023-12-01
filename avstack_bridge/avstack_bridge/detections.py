@@ -20,7 +20,7 @@ class DetectionBridge(Bridge):
         timestamp = self.rostime_to_time(dets_msg.header.stamp)
         dets = self.geom_bridge.box3d_array_to_avstack(dets_msg, tf_buffer=tf_buffer)
         return DataContainer(
-            frame=-1, timestamp=timestamp, data=dets, source_identifier="0"
+            frame=0, timestamp=timestamp, data=dets, source_identifier="0"
         )
 
     ##########################################

@@ -76,7 +76,7 @@ class ObjectStateBridge(Bridge):
         obj_state: ObjectStateAV,
     ) -> ObjectState:
         state = ObjectState(
-            obj_type=obj_state.obj_type,
+            obj_type=obj_state.obj_type if obj_state.obj_type else '',
             position=self.geom_bridge.avstack_to_position(
                 obj_state.position, stamped=False
             ),
@@ -116,7 +116,8 @@ class ObjectStateBridge(Bridge):
         frame_override=None,
     ) -> ObjectStateArray:
         if len(obj_states) == 0:
-            raise NotImplementedError("How do we get header without objects?")
+            return ObjectStateArray()
+            # raise NotImplementedError("How do we get header without objects?")
         header = self.reference_to_header(
             obj_states[0].reference, tf_buffer, frame_override=frame_override
         )

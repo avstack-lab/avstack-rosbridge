@@ -79,12 +79,10 @@ class Bridge:
                 ]
             ),
             q=np.quaternion(
-                [
-                    tr.transform.rotation.x,
-                    tr.transform.rotation.y,
-                    tr.transform.rotation.z,
-                    tr.transform.rotation.w,
-                ]
+                tr.transform.rotation.x,
+                tr.transform.rotation.y,
+                tr.transform.rotation.z,
+                tr.transform.rotation.w,
             ),
             reference=tran_world_2_from,
             from_frame=from_frame,
@@ -126,7 +124,7 @@ class Bridge:
 
     @classmethod
     def reference_to_tf2_stamped(cls, reference: ReferenceFrame) -> TransformStamped:
-        header = cls.reference_to_header(reference)
+        header = Header(frame_id=reference.from_frame, stamp=cls.time_to_rostime(reference.timestamp))
         transform = cls.reference_to_tf2(reference)
         return TransformStamped(
             header=header, child_frame_id=reference.to_frame, transform=transform
@@ -147,8 +145,7 @@ class Bridge:
                 if tf_buffer is None:
                     raise RuntimeError("tf buffer must exist if origin is not world")
                 else:
-                    frame_id = None  # TODO
-                    raise
+                    frame_id = reference.to_frame
             else:
                 frame_id = "world"
         header = Header(stamp=rostime, frame_id=frame_id)

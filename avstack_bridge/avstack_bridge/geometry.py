@@ -22,6 +22,15 @@ from .base import Bridge
 
 class GeometryBridge(Bridge):
 
+    avstack_to_ros_types = {
+        Acceleration: "Vector3",
+        AngularVelocity: "Vector3",
+        Attitude: "Quaternion",
+        Box3D: "BoundingBox3D",
+        Position: "Point",
+        Velocity: "Vector3"
+    }
+
     ###################################################
     # ROS --> AVstack methods
     ###################################################
@@ -150,44 +159,41 @@ class GeometryBridge(Bridge):
 
     @classmethod
     def _to_ros_with_header(
-        cls,
-        aclass: Point | Quaternion | Vector3,
-        data: np.ndarray,
-        reference: ReferenceFrame,
+        data: Vector  | Rotation,
         **kwargs,
-    ) -> Vector | Rotation:
+    ) -> Point | Vector3 | Quaternion :
         raise NotImplementedError("Need to implement with header")
 
-    @staticmethod
+    @classmethod
     def _to_ros_no_header(
-        aclass: Point | Quaternion | Vector3, data: np.ndarray, **kwargs
-    ) -> Vector | Rotation:
-        if aclass == "point":
-            return Point(x=data[0], y=data[1], z=data[2])
-        elif aclass == "vector3":
-            return Vector3(x=data[0], y=data[1], z=data[2])
-        elif aclass == "quaternion":
-            return Quaternion(x=data.x, y=data.y, z=data.z, w=data.w)
+        cls, data: Vector | Rotation, out_type: str, **kwargs
+    ) -> Point | Vector3 | Quaternion:
+        if out_type == "Point":
+            return Point(x=data.x[0], y=data.x[1], z=data.x[2])
+        elif out_type == "Vector3":
+            if data:
+                return Vector3(x=data.x[0], y=data.x[1], z=data.x[2])
+            else:
+                return Vector3()
+        elif out_type == "Quaternion":
+            return Quaternion(x=data.qx, y=data.qy, z=data.qz, w=data.qw)
         else:
-            raise NotImplementedError(aclass)
+            raise NotImplementedError(cls.avstack_to_ros_types[type(data)])
 
     @classmethod
     def _to_ros(
         cls,
-        aclass: Point | Quaternion | Vector3,
-        data: np.ndarray,
-        reference: ReferenceFrame | None,
+        data: Vector | Rotation,
         stamped: bool,
+        out_type: str,
         **kwargs,
     ) -> Vector | Rotation:
-        if (reference is not None) and (
+        if (data is not None) and (data.reference is not None) and (
             stamped
         ):  # cannot have header without a timestamp
-            return cls._to_ros_with_header(
-                aclass=aclass, data=data, reference=reference
-            )
+            return cls._to_ros_with_header(data=data, out_type=out_type)
         else:
-            return cls._to_ros_no_header(aclass=aclass, data=data)
+            return cls._to_ros_no_header(data=data, out_type=out_type)
 
     @classmethod
     def avstack_to_pose(cls, pos: Position, att: Attitude, stamped: bool) -> Pose:
@@ -199,44 +205,24 @@ class GeometryBridge(Bridge):
 
     @classmethod
     def avstack_to_position(cls, position: Position, stamped: bool) -> Point:
-        return cls._to_ros(
-            aclass="point",
-            data=position.x,
-            reference=position.reference,
-            stamped=stamped,
-        )
+        return cls._to_ros(data=position, stamped=stamped, out_type="Point")
 
     @classmethod
     def avstack_to_attitude(cls, attitude: Attitude, stamped: bool) -> Quaternion:
-        return cls._to_ros(
-            aclass="quaternion",
-            data=attitude.q,
-            reference=attitude.reference,
-            stamped=stamped,
-        )
+        return cls._to_ros(data=attitude, stamped=stamped, out_type="Quaternion")
 
     @classmethod
     def avstack_to_velocity(cls, velocity: Velocity, stamped: bool) -> Vector3:
-        return cls._to_ros(
-            aclass="vector3",
-            data=velocity.x,
-            reference=velocity.reference,
-            stamped=stamped,
-        )
+        return cls._to_ros(data=velocity, stamped=stamped, out_type="Vector3")
 
     @classmethod
     def avstack_to_acceleration(cls, accel: Acceleration, stamped: bool) -> Vector3:
-        return cls._to_ros(
-            aclass="vector3", data=accel.x, reference=accel.reference, stamped=stamped
-        )
+        return cls._to_ros(data=accel, stamped=stamped, out_type="Vector3")
 
     @classmethod
     def avstack_to_angular_vel(cls, avel: AngularVelocity, stamped: bool) -> Vector3:
         # TODO: fix this.....
         return Vector3()
-        # return cls._to_ros(
-        #     aclass="vector3", data=avel.x, reference=avel.reference, stamped=stamped
-        # )
 
     @classmethod
     def avstack_to_box3d(cls, box: Box3D, stamped: bool) -> BoundingBox3D:

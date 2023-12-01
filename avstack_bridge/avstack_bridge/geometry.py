@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple, Union
 
 import numpy as np
 from avstack.geometry import (
@@ -7,7 +7,6 @@ from avstack.geometry import (
     Attitude,
     Box3D,
     Position,
-    ReferenceFrame,
     Rotation,
     Vector,
     Velocity,
@@ -28,7 +27,7 @@ class GeometryBridge(Bridge):
         Attitude: "Quaternion",
         Box3D: "BoundingBox3D",
         Position: "Point",
-        Velocity: "Vector3"
+        Velocity: "Vector3",
     }
 
     ###################################################
@@ -38,11 +37,11 @@ class GeometryBridge(Bridge):
     @classmethod
     def _to_avstack(
         cls,
-        aclass: Vector | Rotation,
+        aclass: Union[Vector, Rotation],
         data: np.ndarray,
-        header: Header | None,
-        tf_buffer: Buffer | None,
-    ) -> Point | Quaternion | Vector3:
+        header: Union[Header, None],
+        tf_buffer: Union[Buffer, None],
+    ) -> Union[Point, Quaternion, Vector3]:
         reference = cls.header_to_reference(header=header, tf_buffer=tf_buffer)
         return aclass(data, reference=reference)
 
@@ -50,9 +49,9 @@ class GeometryBridge(Bridge):
     def pose_to_avstack(
         cls,
         pose: Pose,
-        header: Header | None,
-        tf_buffer: Buffer | None,
-    ) -> (Position, Attitude):
+        header: Union[Header, None],
+        tf_buffer: Union[Buffer, None],
+    ) -> Tuple[Position, Attitude]:
         position = cls.position_to_avstack(
             pose.position, header=header, tf_buffer=tf_buffer
         )
@@ -65,8 +64,8 @@ class GeometryBridge(Bridge):
     def position_to_avstack(
         cls,
         position: Point,
-        header: Header | None,
-        tf_buffer: Buffer | None,
+        header: Union[Header, None],
+        tf_buffer: Union[Buffer, None],
     ) -> Position:
         x = np.array([position.x, position.y, position.z])
         return cls._to_avstack(
@@ -77,8 +76,8 @@ class GeometryBridge(Bridge):
     def attitude_to_avstack(
         cls,
         attitude: Quaternion,
-        header: Header | None,
-        tf_buffer: Buffer | None,
+        header: Union[Header, None],
+        tf_buffer: Union[Buffer, None],
     ) -> Attitude:
         q = np.quaternion(attitude.x, attitude.y, attitude.z, attitude.w)
         return cls._to_avstack(
@@ -89,8 +88,8 @@ class GeometryBridge(Bridge):
     def velocity_to_avstack(
         cls,
         velocity: Vector3,
-        header: Header | None,
-        tf_buffer: Buffer | None,
+        header: Union[Header, None],
+        tf_buffer: Union[Buffer, None],
     ) -> Velocity:
         vel = np.array([velocity.x, velocity.y, velocity.z])
         return cls._to_avstack(
@@ -101,8 +100,8 @@ class GeometryBridge(Bridge):
     def acceleration_to_avstack(
         cls,
         accel: Vector3,
-        header: Header | None,
-        tf_buffer: Buffer | None,
+        header: Union[Header, None],
+        tf_buffer: Union[Buffer, None],
     ) -> Acceleration:
         acc = np.array([accel.x, accel.y, accel.z])
         return cls._to_avstack(
@@ -113,8 +112,8 @@ class GeometryBridge(Bridge):
     def angular_vel_to_avstack(
         cls,
         angular_velocity: Vector3,
-        header: Header | None,
-        tf_buffer: Buffer | None,
+        header: Union[Header, None],
+        tf_buffer: Union[Buffer, None],
     ) -> AngularVelocity:
         # avel = np.array([angular_velocity.x, angular_velocity.y, angular_velocity.z])
         # TODO: fix this
@@ -127,8 +126,8 @@ class GeometryBridge(Bridge):
     def box3d_to_avstack(
         cls,
         box: BoundingBox3D,
-        header: Header | None,
-        tf_buffer: Buffer | None,
+        header: Union[Header, None],
+        tf_buffer: Union[Buffer, None],
     ) -> Box3D:
         # reference = cls.header_to_reference(header=header, tf_buffer=tf_buffer)
         position, attitude = cls.pose_to_avstack(
@@ -141,7 +140,7 @@ class GeometryBridge(Bridge):
     def box3d_array_to_avstack(
         cls,
         boxes: BoundingBox3DArray,
-        tf_buffer: Buffer | None,
+        tf_buffer: Union[Buffer, None],
     ) -> List[Box3D]:
         header = boxes.header
         boxes = [
@@ -159,15 +158,15 @@ class GeometryBridge(Bridge):
 
     @classmethod
     def _to_ros_with_header(
-        data: Vector  | Rotation,
+        data: Union[Vector, Rotation],
         **kwargs,
-    ) -> Point | Vector3 | Quaternion :
+    ) -> Union[Point, Vector3, Quaternion]:
         raise NotImplementedError("Need to implement with header")
 
     @classmethod
     def _to_ros_no_header(
-        cls, data: Vector | Rotation, out_type: str, **kwargs
-    ) -> Point | Vector3 | Quaternion:
+        cls, data: Union[Vector, Rotation], out_type: str, **kwargs
+    ) -> Union[Point, Vector3, Quaternion]:
         if out_type == "Point":
             return Point(x=data.x[0], y=data.x[1], z=data.x[2])
         elif out_type == "Vector3":
@@ -183,13 +182,13 @@ class GeometryBridge(Bridge):
     @classmethod
     def _to_ros(
         cls,
-        data: Vector | Rotation,
+        data: Union[Vector, Rotation],
         stamped: bool,
         out_type: str,
         **kwargs,
-    ) -> Vector | Rotation:
-        if (data is not None) and (data.reference is not None) and (
-            stamped
+    ) -> Union[Vector, Rotation]:
+        if (
+            (data is not None) and (data.reference is not None) and (stamped)
         ):  # cannot have header without a timestamp
             return cls._to_ros_with_header(data=data, out_type=out_type)
         else:
@@ -236,13 +235,16 @@ class GeometryBridge(Bridge):
 
     @classmethod
     def avstack_to_box3d_array(
-        cls, boxes: List[Box3D], tf_buffer: Buffer | None = None, frame_override=None
+        cls,
+        boxes: List[Box3D],
+        tf_buffer: Union[Buffer, None] = None,
+        **kwargs,
     ) -> BoundingBox3DArray:
         if len(boxes) == 0:
             return BoundingBox3DArray()
         else:
             header = cls.reference_to_header(
-                boxes[0].reference, tf_buffer=tf_buffer, frame_override=frame_override
+                boxes[0].reference, tf_buffer=tf_buffer, **kwargs
             )
         boxes = [box if isinstance(box, Box3D) else box.box for box in boxes]  # HACK
         boxes_ros = [cls.avstack_to_box3d(box, stamped=False) for box in boxes]

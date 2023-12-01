@@ -1,3 +1,5 @@
+from typing import Union
+
 from avstack.datastructs import DataContainer
 from tf2_ros.buffer import Buffer
 from vision_msgs.msg import BoundingBox3DArray
@@ -28,8 +30,8 @@ class DetectionBridge(Bridge):
     ##########################################
 
     def avstack_to_detections(
-        self, dets: DataContainer, tf_buffer: Buffer | None = None, frame_override=None
+        self, dets: DataContainer, tf_buffer: Union[Buffer, None] = None, **kwargs
     ) -> BoundingBox3DArray:
         return self.geom_bridge.avstack_to_box3d_array(
-            dets, tf_buffer=tf_buffer, frame_override=frame_override
+            dets, tf_buffer=tf_buffer, **kwargs
         )

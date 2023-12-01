@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 from avstack.geometry import GlobalOrigin3D, ReferenceFrame
 from builtin_interfaces.msg import Time
@@ -33,7 +35,7 @@ class Bridge:
     @classmethod
     def header_to_reference(
         cls,
-        header: Header | None,
+        header: Union[Header, None],
         tf_buffer: Buffer,
         from_frame: str = "world",
     ) -> ReferenceFrame:
@@ -124,7 +126,10 @@ class Bridge:
 
     @classmethod
     def reference_to_tf2_stamped(cls, reference: ReferenceFrame) -> TransformStamped:
-        header = Header(frame_id=reference.from_frame, stamp=cls.time_to_rostime(reference.timestamp))
+        header = Header(
+            frame_id=reference.from_frame,
+            stamp=cls.time_to_rostime(reference.timestamp),
+        )
         transform = cls.reference_to_tf2(reference)
         return TransformStamped(
             header=header, child_frame_id=reference.to_frame, transform=transform
@@ -134,10 +139,10 @@ class Bridge:
     def reference_to_header(
         cls,
         reference: ReferenceFrame,
-        tf_buffer: Buffer | None = None,
+        tf_buffer: Union[Buffer, None] = None,
         frame_override=None,
+        timestamp_override=None,
     ) -> Header:
-        rostime = cls.time_to_rostime(reference.timestamp)
         if frame_override:
             frame_id = frame_override
         else:
@@ -148,6 +153,8 @@ class Bridge:
                     frame_id = reference.to_frame
             else:
                 frame_id = "world"
+        timestamp = timestamp_override if timestamp_override else reference.timestamp
+        rostime = cls.time_to_rostime(timestamp)
         header = Header(stamp=rostime, frame_id=frame_id)
         return header
 

@@ -76,7 +76,7 @@ class ObjectStateBridge(Bridge):
         obj_state: ObjectStateAV,
     ) -> ObjectState:
         state = ObjectState(
-            obj_type=obj_state.obj_type if obj_state.obj_type else '',
+            obj_type=obj_state.obj_type if obj_state.obj_type else "",
             position=self.geom_bridge.avstack_to_position(
                 obj_state.position, stamped=False
             ),

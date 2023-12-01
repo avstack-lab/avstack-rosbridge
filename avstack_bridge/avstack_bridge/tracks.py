@@ -1,5 +1,6 @@
 from avstack.datastructs import DataContainer
 from tf2_ros.buffer import Buffer
+
 from avstack_msgs.msg import ObjectStateArray
 
 from .base import Bridge
@@ -18,7 +19,9 @@ class TrackBridge(Bridge):
         self, trks_msg: ObjectStateArray, tf_buffer=None
     ) -> DataContainer:
         timestamp = self.rostime_to_time(trks_msg.header.stamp)
-        tracks = self.obj_bridge.objectstatearray_to_avstack(trks_msg, tf_buffer=tf_buffer)
+        tracks = self.obj_bridge.objectstatearray_to_avstack(
+            trks_msg, tf_buffer=tf_buffer
+        )
         return DataContainer(
             frame=-1, timestamp=timestamp, data=tracks, source_identifier="0"
         )

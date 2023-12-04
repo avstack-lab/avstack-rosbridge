@@ -11,16 +11,16 @@ def flatten(alist):
     return list(itertools.chain.from_iterable(alist))
 
 
-class CameraCalibrationBridge(Bridge):
-    def __init__(self) -> None:
-        super().__init__()
-
+class CameraCalibrationBridge:
+    @staticmethod
     def calib_to_caminfomsg(
-        self, calib: CameraCalibration, timestamp: float
+        calib: CameraCalibration,
+        header=None,
     ) -> CameraInfo:
-        header = self.reference_to_header(
-            reference=calib.reference, timestamp=timestamp
-        )
+        if not header:
+            header = Bridge.reference_to_header(
+                reference=calib.reference,
+            )
         D_vec = []
         K_mat = flatten(calib.P[:3, :3].tolist())
         R_mat = flatten(np.eye(3).tolist())
@@ -40,8 +40,9 @@ class CameraCalibrationBridge(Bridge):
         )
         return caminfo
 
-    def caminfomsg_to_calib(self, caminfo: CameraInfo) -> CameraCalibration:
-        reference = self.header_to_reference(caminfo.header)
+    @staticmethod
+    def caminfomsg_to_calib(caminfo: CameraInfo) -> CameraCalibration:
+        reference = Bridge.header_to_reference(caminfo.header)
         P_mat = np.array(caminfo.P)
         height = caminfo.height
         width = caminfo.width

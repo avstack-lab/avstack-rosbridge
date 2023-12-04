@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from avstack.environment.objects import ObjectState as ObjectStateAV
-from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import Pose, Twist, Vector3
 from std_msgs.msg import Header
 
 from avstack_msgs.msg import ObjectState, ObjectStateArray, ObjectStateStamped
@@ -35,15 +35,15 @@ class ObjectStateBridge:
         obj_state.set(
             t=timestamp,
             position=GeometryBridge.position_to_avstack(
-                obj.position,
+                obj.pose.position,
                 header=header,
             ),
             attitude=GeometryBridge.attitude_to_avstack(
-                obj.attitude,
+                obj.pose.orientation,
                 header=header,
             ),
             velocity=GeometryBridge.velocity_to_avstack(
-                obj.linear_velocity,
+                obj.twist.linear,
                 header=header,
             ),
             acceleration=GeometryBridge.acceleration_to_avstack(
@@ -51,7 +51,7 @@ class ObjectStateBridge:
                 header=header,
             ),
             angular_velocity=GeometryBridge.angular_vel_to_avstack(
-                obj.angular_velocity,
+                obj.twist.angular,
                 header=header,
             ),
             box=GeometryBridge.box3d_to_avstack(
@@ -82,20 +82,20 @@ class ObjectStateBridge:
 
     @staticmethod
     def avstack_to_objectstate(obj_state: ObjectStateAV) -> ObjectState:
+        position = GeometryBridge.avstack_to_position(obj_state.position, stamped=False)
+        orientation = GeometryBridge.avstack_to_attitude(
+            obj_state.attitude, stamped=False
+        )
+        linear = GeometryBridge.avstack_to_velocity(obj_state.velocity, stamped=False)
+        angular = GeometryBridge.avstack_to_angular_vel(
+            obj_state.angular_velocity, stamped=False
+        )
+        pose = Pose(position=position, orientation=orientation)
+        twist = Twist(linear=linear, angular=angular)
         state = ObjectState(
             obj_type=obj_state.obj_type if obj_state.obj_type else "",
-            position=GeometryBridge.avstack_to_position(
-                obj_state.position, stamped=False
-            ),
-            attitude=GeometryBridge.avstack_to_attitude(
-                obj_state.attitude, stamped=False
-            ),
-            linear_velocity=GeometryBridge.avstack_to_velocity(
-                obj_state.velocity, stamped=False
-            ),
-            angular_velocity=GeometryBridge.avstack_to_angular_vel(
-                obj_state.angular_velocity, stamped=False
-            ),
+            pose=pose,
+            twist=twist,
             linear_acceleration=GeometryBridge.avstack_to_acceleration(
                 obj_state.acceleration, stamped=False
             ),
@@ -116,12 +116,13 @@ class ObjectStateBridge:
     @classmethod
     def avstack_to_objecstatearray(
         cls,
-        obj_states,
-        header,
+        obj_states: List[ObjectStateAV],
+        header=None,
     ) -> ObjectStateArray:
         if len(obj_states) == 0:
-            return ObjectStateArray()
-            # raise NotImplementedError("How do we get header without objects?")
+            if not header:
+                raise NotImplementedError("How do we get header without objects?")
+            return ObjectStateArray(header=header)
         if not header:
             header = Bridge.reference_to_header(obj_states[0].reference)
         states = [cls.avstack_to_objectstate(obj) for obj in obj_states]

@@ -1,19 +1,41 @@
-from geometry_msgs.msg import TransformStamped, Twist
+from geometry_msgs.msg import TransformStamped, Twist, Vector3Stamped
 from tf2_geometry_msgs import do_transform_pose, do_transform_vector3
 from vision_msgs.msg import BoundingBox3D
 
-from avstack_msgs.msg import ObjectState
+from avstack_msgs.msg import ObjectState, ObjectStateStamped
+
+
+def do_transform_object_state_stamped(
+    obj_state: ObjectStateStamped, tf: TransformStamped
+) -> ObjectStateStamped:
+    obj_state_tf = ObjectStateStamped(
+        state=do_transform_object_state(obj_state.state, tf)
+    )
+    obj_state_tf.header = tf.header
+    return obj_state_tf
 
 
 def do_transform_object_state(
     obj_state: ObjectState, tf: TransformStamped
 ) -> ObjectState:
-    obj_type = obj_state.obj_type
+    """Apply transform to object state
+
+    NOTE: the vector3 transform operates on stamped vectors but does not
+    actually use the header, so we can safely wrap the transformation
+    """
     pose = do_transform_pose(obj_state.pose, tf)
-    linear_vel = do_transform_vector3(obj_state.twist.linear, tf)
-    angular_vel = do_transform_vector3(obj_state.twist.angular, tf)
-    linear_acc = do_transform_vector3(obj_state.linear_acceleration, tf)
-    angular_acc = do_transform_vector3(obj_state.angular_acceleration, tf)
+    linear_vel = do_transform_vector3(
+        Vector3Stamped(vector=obj_state.twist.linear), tf
+    ).vector
+    angular_vel = do_transform_vector3(
+        Vector3Stamped(vector=obj_state.twist.angular), tf
+    ).vector
+    linear_acc = do_transform_vector3(
+        Vector3Stamped(vector=obj_state.linear_acceleration), tf
+    ).vector
+    angular_acc = do_transform_vector3(
+        Vector3Stamped(vector=obj_state.angular_acceleration), tf
+    ).vector
     box = do_transform_box(obj_state.box, tf)
 
     obj_state_tf = ObjectState(
@@ -21,7 +43,7 @@ def do_transform_object_state(
         pose=pose,
         twist=Twist(linear=linear_vel, angular=angular_vel),
         linear_acceleration=linear_acc,
-        angular_acc=angular_acc,
+        angular_acceleration=angular_acc,
         box=box,
     )
 

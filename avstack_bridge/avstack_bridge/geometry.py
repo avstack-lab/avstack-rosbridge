@@ -67,7 +67,7 @@ class GeometryBridge:
         attitude: Quaternion,
         header: Union[Header, None],
     ) -> Attitude:
-        q = np.quaternion(attitude.x, attitude.y, attitude.z, attitude.w)
+        q = np.quaternion(-attitude.w, attitude.x, attitude.y, attitude.z)
         return cls._to_avstack(aclass=Attitude, data=q, header=header)
 
     @classmethod
@@ -144,7 +144,7 @@ class GeometryBridge:
             else:
                 return Vector3()
         elif out_type == "Quaternion":
-            return Quaternion(x=data.qx, y=data.qy, z=data.qz, w=data.qw)
+            return Quaternion(x=data.qx, y=data.qy, z=data.qz, w=-data.qw)
         else:
             raise NotImplementedError(cls.avstack_to_ros_types[type(data)])
 

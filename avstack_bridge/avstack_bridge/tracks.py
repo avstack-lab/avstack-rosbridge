@@ -12,7 +12,7 @@ class TrackBridge:
         timestamp = Bridge.rostime_to_time(trks_msg.header.stamp)
         tracks = ObjectStateBridge.objectstatearray_to_avstack(trks_msg)
         return DataContainer(
-            frame=-1, timestamp=timestamp, data=tracks, source_identifier="0"
+            frame=0, timestamp=timestamp, data=tracks, source_identifier="0"
         )
 
     @staticmethod

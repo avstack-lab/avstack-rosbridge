@@ -9,10 +9,10 @@ geometry_msgs/Vector3 velocity
 
 float64[81] p  # state vector covariance
 
-uint8 n_updates 0
+uint32 n_updates 0
 
-uint8 age 0
+uint32 age 0
 
 float64 coast 0.0
 
-uint8 identifier 0
+uint32 identifier 0

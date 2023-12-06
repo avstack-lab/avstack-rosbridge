@@ -1,3 +1,4 @@
+import numpy as np
 from avstack.geometry import PassiveReferenceFrame, ReferenceFrame
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Quaternion, Transform, TransformStamped, Vector3
@@ -5,6 +6,23 @@ from std_msgs.msg import Header
 
 
 class Bridge:
+    @staticmethod
+    def ndarray_to_list(array: np.ndarray) -> list:
+        return array.ravel().tolist()
+
+    @staticmethod
+    def list_to_2d_ndarray(list: list, shape=None):
+        if not shape:
+            if not isinstance(np.sqrt(len(list)), int):
+                raise ValueError(
+                    "If shape is None, then list length must be square-rootable but it's of length {}".format(
+                        len(list)
+                    )
+                )
+            else:
+                shape = (np.sqrt(len(list)), np.sqrt(len(list)))
+        return np.array(list).reshape(shape)
+
     @staticmethod
     def time_to_rostime(timestamp: float) -> Time:
         ts = Time(

@@ -52,3 +52,7 @@ def get_object_global(seed, reference=GlobalOrigin3D):
     obj = VehicleState("car")
     obj.set(0, pos_obj, box_obj, vel_obj, acc_obj, rot_obj, ang_obj)
     return obj
+
+
+def get_boxtrack_3d(seed, reference=GlobalOrigin3D):
+    pass

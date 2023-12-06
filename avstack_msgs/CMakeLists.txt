@@ -22,6 +22,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/BoxTrack.msg"
   "msg/BoxTrackStamped.msg"
   "msg/BoxTrackArray.msg"
+  "msg/BoxTrackArrayWithSender.msg"
+  "msg/BoxTrackArrayWithSenderArray.msg"
   DEPENDENCIES std_msgs geometry_msgs vision_msgs
 )
 

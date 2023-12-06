@@ -2,8 +2,8 @@ from typing import Union
 
 from avstack.datastructs import DataContainer
 from avstack.modules.tracking.tracks import BasicBoxTrack3D
-
-from avstack_msgs.msg import BoxTrack, BoxTrackArray, BoxTrackStamped, ObjectStateArray
+from avstack_msgs.msg import BoxTrack, BoxTrackArray, BoxTrackArrayWithSender, BoxTrackStamped, ObjectStateArray
+from std_msgs.msg import Header
 
 from .base import Bridge
 from .geometry import GeometryBridge
@@ -16,8 +16,8 @@ class TrackBridge:
         cls, trks_msg: Union[BoxTrackArray, ObjectStateArray]
     ) -> DataContainer:
         timestamp = Bridge.rostime_to_time(trks_msg.header.stamp)
-        if isinstance(trks_msg, BoxTrackArray):
-            tracks = [cls.boxtrack_to_avstack(trk) for trk in trks_msg.tracks]
+        if isinstance(trks_msg, (BoxTrackArrayWithSender, BoxTrackArray)):
+            tracks = [cls.boxtrack_to_avstack(trk_msg=trk, header=trks_msg.header) for trk in trks_msg.tracks]
         else:
             tracks = ObjectStateBridge.objectstatearray_to_avstack(trks_msg)
         return DataContainer(
@@ -25,18 +25,18 @@ class TrackBridge:
         )
 
     @staticmethod
-    def boxtrack_to_avstack(trk_msg: BoxTrackStamped) -> BasicBoxTrack3D:
+    def boxtrack_to_avstack(trk_msg: BoxTrack, header: Header) -> BasicBoxTrack3D:
         return BasicBoxTrack3D(
             t0=0,
-            box3d=GeometryBridge.box3d_to_avstack(trk_msg.box, header=None),
-            reference=Bridge.header_to_reference(trk_msg.header),
+            box3d=GeometryBridge.box3d_to_avstack(trk_msg.box, header=header),
+            reference=Bridge.header_to_reference(header),
             obj_type=trk_msg.obj_type if trk_msg.obj_type else None,
             ID_force=None if trk_msg.identifier == 0 else trk_msg.identifier,
             v=GeometryBridge.velocity_to_avstack(
-                velocity=trk_msg.velocity, header=None
+                velocity=trk_msg.velocity, header=header
             ),
-            P=Bridge.list_to_2d_ndarray(trk_msg.P),
-            t=Bridge.rostime_to_time(trk_msg.header.stamp),
+            P=Bridge.list_to_2d_ndarray(trk_msg.p),
+            t=Bridge.rostime_to_time(header.stamp),
             coast=trk_msg.coast,
             n_updates=trk_msg.n_updates,
             age=trk_msg.age,
@@ -83,6 +83,6 @@ class TrackBridge:
                     header=header,
                 )
         else:
-            trks_msg = default_type()
+            trks_msg = default_type(header=header)
 
         return trks_msg

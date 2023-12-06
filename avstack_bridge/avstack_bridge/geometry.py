@@ -144,7 +144,10 @@ class GeometryBridge:
             else:
                 return Vector3()
         elif out_type == "Quaternion":
-            return Quaternion(x=data.qx, y=data.qy, z=data.qz, w=-data.qw)
+            if data:
+                return Quaternion(x=data.qx, y=data.qy, z=data.qz, w=-data.qw)
+            else:
+                return Quaternion()
         else:
             raise NotImplementedError(cls.avstack_to_ros_types[type(data)])
 
@@ -195,11 +198,14 @@ class GeometryBridge:
     def avstack_to_box3d(cls, box: Box3D, stamped: bool) -> BoundingBox3D:
         if stamped:
             raise NotImplementedError("Cannot do stamped box yet")
-        center = cls.avstack_to_pose(box.position, box.attitude, stamped=stamped)
-        size = Vector3(
-            x=float(box.l), y=float(box.w), z=float(box.h)
-        )  # TODO: is this the right order?
-        return BoundingBox3D(center=center, size=size)
+        if box:
+            center = cls.avstack_to_pose(box.position, box.attitude, stamped=stamped)
+            size = Vector3(
+                x=float(box.l), y=float(box.w), z=float(box.h)
+            )  # TODO: is this the right order?
+            return BoundingBox3D(center=center, size=size)
+        else:
+            return BoundingBox3D()
 
     @classmethod
     def avstack_to_box3d_array(

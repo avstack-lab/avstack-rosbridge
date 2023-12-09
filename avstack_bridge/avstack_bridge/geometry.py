@@ -105,7 +105,6 @@ class GeometryBridge:
         box: BoundingBox3D,
         header: Union[Header, None],
     ) -> Box3D:
-        # reference = cls.header_to_reference(header=header, tf_buffer=tf_buffer)
         position, attitude = cls.pose_to_avstack(box.center, header=header)
         hwl = [box.size.z, box.size.y, box.size.x]  # TODO: is this the right order?
         return Box3D(position=position, attitude=attitude, hwl=hwl)
@@ -217,7 +216,7 @@ class GeometryBridge:
             return BoundingBox3DArray()
         else:
             if not header:
-                header = cls.reference_to_header(boxes[0].reference)
+                header = Bridge.reference_to_header(boxes[0].reference)
         boxes = [box if isinstance(box, Box3D) else box.box for box in boxes]  # HACK
         boxes_ros = [cls.avstack_to_box3d(box, stamped=False) for box in boxes]
         return BoundingBox3DArray(header=header, boxes=boxes_ros)

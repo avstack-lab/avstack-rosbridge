@@ -52,12 +52,12 @@ class Bridge:
     @classmethod
     def reference_to_tf2_stamped(cls, reference: ReferenceFrame) -> TransformStamped:
         header = Header(
-            frame_id=reference.from_frame,
+            frame_id=reference.to_frame,
             stamp=cls.time_to_rostime(reference.timestamp),
         )
         transform = cls.reference_to_tf2(reference)
         return TransformStamped(
-            header=header, child_frame_id=reference.to_frame, transform=transform
+            header=header, child_frame_id=reference.from_frame, transform=transform
         )
 
     @staticmethod

@@ -1,23 +1,24 @@
 import numpy as np
-from geometry_msgs.msg import TransformStamped, Twist, Vector3Stamped, Quaternion
+from geometry_msgs.msg import Quaternion, TransformStamped, Twist, Vector3Stamped
 from tf2_geometry_msgs import do_transform_pose, do_transform_vector3
 from vision_msgs.msg import BoundingBox3D
 
 from avstack_msgs.msg import BoxTrack, BoxTrackStamped, ObjectState, ObjectStateStamped
+
 from .base import Bridge
 
 
-def do_transform_object_state_stamped(
+def do_transform_objectstatestamped(
     obj_state: ObjectStateStamped, tf: TransformStamped
 ) -> ObjectStateStamped:
     obj_state_tf = ObjectStateStamped(
-        state=do_transform_object_state(obj_state.state, tf)
+        state=do_transform_objectstate(obj_state.state, tf)
     )
     obj_state_tf.header = tf.header
     return obj_state_tf
 
 
-def do_transform_object_state(
+def do_transform_objectstate(
     obj_state: ObjectState, tf: TransformStamped
 ) -> ObjectState:
     """Apply transform to object state
@@ -52,27 +53,23 @@ def do_transform_object_state(
     return obj_state_tf
 
 
-def do_transform_box_track_stamped(
+def do_transform_boxtrackstamped(
     box_track: BoxTrackStamped, tf: TransformStamped
 ) -> BoxTrackStamped:
-    box_track_tf = BoxTrackStamped(
-        track=do_transform_box_track(box_track.track, tf)
-    )
+    box_track_tf = BoxTrackStamped(track=do_transform_boxtrack(box_track.track, tf))
     box_track_tf.header = tf.header
     return box_track_tf
 
 
-def do_transform_box_track(
-    track: BoxTrack, tf: TransformStamped
-) -> BoxTrack:
+def do_transform_boxtrack(track: BoxTrack, tf: TransformStamped) -> BoxTrack:
     """Apply transform to box track
-    
+
     NOTE: the vector3 transform note above applies
-    
+
     We also need to transform the covariance matrix
     """
     p_tf = Bridge.ndarray_to_list(
-        do_transform_box_track_covariance(Bridge.list_to_2d_ndarray(track.p), tf)
+        do_transform_boxtrack_covariance(Bridge.list_to_2d_ndarray(track.p), tf)
     )
     velocity = do_transform_vector3(Vector3Stamped(vector=track.velocity), tf).vector
     box_track_tf = BoxTrack(
@@ -95,19 +92,19 @@ def do_transform_box(box: BoundingBox3D, tf: TransformStamped) -> BoundingBox3D:
     return box_tf
 
 
-def do_transform_box_track_covariance(cov_in: np.ndarray, tf: TransformStamped) -> np.ndarray:
+def do_transform_boxtrack_covariance(
+    cov_in: np.ndarray, tf: TransformStamped
+) -> np.ndarray:
     """Apply the transform to the box track covariance matrix
-    
+
     The covariance is a 9x9 where the state vector is:
     [x, y, z, h, w, l, vx, vy, vz]
     """
-    assert cov_in.shape == (9,9), cov_in.shape
-    zero = np.zeros((3,3))
+    assert cov_in.shape == (9, 9), cov_in.shape
+    zero = np.zeros((3, 3))
     eye = np.eye(3)
     R = _quat_to_rot(tf.transform.rotation)
-    R_block = np.block([[   R, zero, zero],
-                        [zero,  eye, zero],
-                        [zero, zero,    R]])
+    R_block = np.block([[R, zero, zero], [zero, eye, zero], [zero, zero, R]])
     cov_out = R_block @ cov_in @ R_block.T
     return cov_out
 
@@ -141,8 +138,6 @@ def _quat_to_rot(tf_rot: Quaternion):
     # Statistics, and Random Processes For Electrical Engineering, 3rd ed.,
     # Pearson Prentice Hall, 2008, pp. 320–322.
 
-    R = np.array([[r00, r01, r02],
-                  [r10, r11, r12],
-                  [r20, r21, r22]])
+    R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
 
     return R

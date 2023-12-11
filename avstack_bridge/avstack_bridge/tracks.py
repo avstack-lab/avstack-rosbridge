@@ -2,8 +2,15 @@ from typing import Union
 
 from avstack.datastructs import DataContainer
 from avstack.modules.tracking.tracks import BasicBoxTrack3D
-from avstack_msgs.msg import BoxTrack, BoxTrackArray, BoxTrackArrayWithSender, BoxTrackStamped, ObjectStateArray
 from std_msgs.msg import Header
+
+from avstack_msgs.msg import (
+    BoxTrack,
+    BoxTrackArray,
+    BoxTrackArrayWithSender,
+    BoxTrackStamped,
+    ObjectStateArray,
+)
 
 from .base import Bridge
 from .geometry import GeometryBridge
@@ -17,7 +24,10 @@ class TrackBridge:
     ) -> DataContainer:
         timestamp = Bridge.rostime_to_time(trks_msg.header.stamp)
         if isinstance(trks_msg, (BoxTrackArrayWithSender, BoxTrackArray)):
-            tracks = [cls.boxtrack_to_avstack(trk_msg=trk, header=trks_msg.header) for trk in trks_msg.tracks]
+            tracks = [
+                cls.boxtrack_to_avstack(trk_msg=trk, header=trks_msg.header)
+                for trk in trks_msg.tracks
+            ]
         else:
             tracks = ObjectStateBridge.objectstatearray_to_avstack(trks_msg)
         return DataContainer(

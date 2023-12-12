@@ -11,7 +11,15 @@ from avstack.geometry import (
     Vector,
     Velocity,
 )
-from geometry_msgs.msg import Point, Pose, Quaternion, Vector3
+from geometry_msgs.msg import (
+    Point,
+    PointStamped,
+    Pose,
+    Quaternion,
+    QuaternionStamped,
+    Vector3,
+    Vector3Stamped,
+)
 from std_msgs.msg import Header
 from vision_msgs.msg import BoundingBox3D, BoundingBox3DArray
 
@@ -127,9 +135,18 @@ class GeometryBridge:
 
     @classmethod
     def _to_ros_with_header(
-        data: Union[Vector, Rotation],
+        cls, data: Union[Vector, Rotation], out_type: str
     ) -> Union[Point, Vector3, Quaternion]:
-        raise NotImplementedError("Need to implement with header")
+        header = Bridge.reference_to_header(data.reference)
+        val = cls._to_ros_no_header(data, out_type)
+        if out_type == "Point":
+            return PointStamped(header=header, point=val)
+        elif out_type == "Vector3":
+            return Vector3Stamped(header=header, vector=val)
+        elif out_type == "Quaternion":
+            return QuaternionStamped(header=header, quaternion=val)
+        else:
+            raise NotImplementedError(out_type)
 
     @classmethod
     def _to_ros_no_header(
@@ -148,7 +165,7 @@ class GeometryBridge:
             else:
                 return Quaternion()
         else:
-            raise NotImplementedError(cls.avstack_to_ros_types[type(data)])
+            raise NotImplementedError(out_type)
 
     @classmethod
     def _to_ros(

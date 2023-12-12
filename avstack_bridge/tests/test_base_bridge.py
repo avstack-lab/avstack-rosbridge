@@ -29,7 +29,8 @@ def test_reference_to_tf2_stamped():
     )
     tf2 = base_bridge.reference_to_tf2_stamped(ref)
     assert isinstance(tf2, TransformStamped)
-    assert tf2.header.frame_id == "frame1"
+    assert tf2.header.frame_id == "world"
+    assert tf2.child_frame_id == "frame1"
     assert Bridge.rostime_to_time(tf2.header.stamp) == 1.01
     tf_x = np.array(
         [
@@ -44,8 +45,8 @@ def test_reference_to_tf2_stamped():
         tf2.transform.rotation.y,
         tf2.transform.rotation.z,
     )
-    assert np.allclose(ref.x, tf_x)
-    assert quaternion.allclose(ref.q, tf_q)
+    assert np.allclose(-ref.x, tf_x)
+    assert quaternion.allclose(ref.q.conjugate(), tf_q)
 
 
 def test_reference_to_header():

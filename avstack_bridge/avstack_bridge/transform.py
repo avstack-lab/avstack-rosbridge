@@ -1,6 +1,10 @@
 import numpy as np
 from geometry_msgs.msg import Quaternion, TransformStamped, Twist, Vector3Stamped
-from tf2_geometry_msgs import do_transform_pose, do_transform_vector3
+from tf2_geometry_msgs import (  # noqa # pylint: disable=unused-import
+    do_transform_point,
+    do_transform_pose,
+    do_transform_vector3,
+)
 from vision_msgs.msg import BoundingBox3D
 
 from avstack_msgs.msg import BoxTrack, BoxTrackStamped, ObjectState, ObjectStateStamped

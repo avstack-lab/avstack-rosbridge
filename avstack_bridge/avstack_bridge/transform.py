@@ -1,15 +1,37 @@
+from typing import Union
+
 import numpy as np
-from geometry_msgs.msg import Quaternion, TransformStamped, Twist, Vector3Stamped
-from tf2_geometry_msgs import (  # noqa # pylint: disable=unused-import
-    do_transform_point,
-    do_transform_pose,
-    do_transform_vector3,
+from geometry_msgs.msg import (
+    Pose,
+    PoseStamped,
+    Quaternion,
+    TransformStamped,
+    Twist,
+    Vector3Stamped,
 )
+from std_msgs.msg import Header
+from tf2_geometry_msgs import do_transform_point
+from tf2_geometry_msgs import (  # noqa # pylint: disable=unused-import
+    do_transform_pose as do_transform_pose_nostamp,
+)
+from tf2_geometry_msgs import do_transform_vector3
 from vision_msgs.msg import BoundingBox3D
 
 from avstack_msgs.msg import BoxTrack, BoxTrackStamped, ObjectState, ObjectStateStamped
 
 from .base import Bridge
+
+
+def do_transform_pose(
+    pose: Union[Pose, PoseStamped], tf: TransformStamped
+) -> Union[Pose, PoseStamped]:
+    if isinstance(pose, Pose):
+        return do_transform_pose_nostamp(pose, tf)
+    elif isinstance(pose, PoseStamped):
+        header = Header(frame_id=tf.child_frame_id, stamp=tf.header.stamp)
+        return PoseStamped(header=header, pose=do_transform_pose_nostamp(pose.pose, tf))
+    else:
+        raise NotImplementedError(type(pose))
 
 
 def do_transform_objectstatestamped(

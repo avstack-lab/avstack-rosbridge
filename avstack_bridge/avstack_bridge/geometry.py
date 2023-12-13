@@ -15,6 +15,7 @@ from geometry_msgs.msg import (
     Point,
     PointStamped,
     Pose,
+    PoseStamped,
     Quaternion,
     QuaternionStamped,
     Vector3,
@@ -56,8 +57,18 @@ class GeometryBridge:
         pose: Pose,
         header: Union[Header, None],
     ) -> Tuple[Position, Attitude]:
-        position = cls.position_to_avstack(pose.position, header=header)
-        attitude = cls.attitude_to_avstack(pose.orientation, header=header)
+        """Pose is unique in that ros considers it synonymous with a frame/transform"""
+        reference = Bridge.header_to_reference(header=header)
+        q_pt_to_a = np.quaternion(
+            pose.orientation.w,
+            pose.orientation.x,
+            pose.orientation.y,
+            pose.orientation.z,
+        )
+        q_a_to_pt = q_pt_to_a.conjugate()
+        t_a_to_pt_in_a = np.array([pose.position.x, pose.position.y, pose.position.z])
+        position = Position(x=t_a_to_pt_in_a, reference=reference)
+        attitude = Attitude(q=q_a_to_pt, reference=reference)
         return position, attitude
 
     @classmethod
@@ -182,12 +193,21 @@ class GeometryBridge:
             return cls._to_ros_no_header(data=data, out_type=out_type)
 
     @classmethod
-    def avstack_to_pose(cls, pos: Position, att: Attitude, stamped: bool) -> Pose:
+    def avstack_to_pose(
+        cls, pos: Position, att: Attitude, stamped: bool
+    ) -> Union[Pose, PoseStamped]:
+        """Pose is unique in that ros considers it synonymous with a frame/transform"""
+        t_a_to_pt_in_a = pos.x
+        q_pt_to_a = att.q.conjugate()
+        position = Point(x=t_a_to_pt_in_a[0], y=t_a_to_pt_in_a[1], z=t_a_to_pt_in_a[2])
+        orientation = Quaternion(
+            x=q_pt_to_a.x, y=q_pt_to_a.y, z=q_pt_to_a.z, w=q_pt_to_a.w
+        )
+        pose = Pose(position=position, orientation=orientation)
         if stamped:
-            raise NotImplementedError("Cannot do stamped pose yet")
-        position = cls.avstack_to_position(pos, stamped=stamped)
-        attitude = cls.avstack_to_attitude(att, stamped=stamped)
-        return Pose(position=position, orientation=attitude)
+            header = Bridge.reference_to_header(pos.reference)
+            pose = PoseStamped(header=header, pose=pose)
+        return pose
 
     @classmethod
     def avstack_to_position(cls, position: Position, stamped: bool) -> Point:

@@ -1,22 +1,21 @@
-def test_header_wrapper():
-    pass
+import numpy as np
+import quaternion  # noqa # pylint: disable=unused-import
+from avstack.geometry import Attitude, GlobalOrigin3D, Position
+from utilities import random_quat
+
+from avstack_bridge.geometry import GeometryBridge
 
 
-def test_position_to_avstack_no_header():
-    pass
+def test_pose_bridge():
+    xp = np.random.randn(3)
+    qp = random_quat()
 
+    position = Position(x=xp, reference=GlobalOrigin3D.as_passive_frame())
+    attitude = Attitude(q=qp, reference=GlobalOrigin3D.as_passive_frame())
+    pose = GeometryBridge.avstack_to_pose(position, attitude, stamped=True)
+    position_2, attitude_2 = GeometryBridge.pose_to_avstack(
+        pose.pose, header=pose.header
+    )
 
-def test_velocity_to_avstack():
-    pass
-
-
-def test_attitude_to_avstack():
-    pass
-
-
-def test_acceleration_to_avstack():
-    pass
-
-
-def test_angular_velocity_to_avstack():
-    pass
+    assert position.allclose(position_2)
+    assert attitude.allclose(attitude_2)

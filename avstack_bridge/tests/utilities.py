@@ -17,6 +17,7 @@ from avstack.geometry import (
     ReferenceFrame,
     Velocity,
     q_stan_to_cam,
+    transform_orientation,
 )
 
 
@@ -61,3 +62,7 @@ def get_object_global(seed, reference=GlobalOrigin3D):
 
 def get_boxtrack_3d(seed, reference=GlobalOrigin3D):
     pass
+
+
+def random_quat():
+    return transform_orientation(np.random.rand(3), "euler", "quat")

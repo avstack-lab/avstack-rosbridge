@@ -1,5 +1,9 @@
 import numpy as np
-from avstack.geometry import PassiveReferenceFrame, ReferenceFrame
+from avstack.geometry import (
+    PassiveReferenceFrame,
+    ReferenceFrame,
+    transform_orientation,
+)
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Quaternion, Transform, TransformStamped, Vector3
 from std_msgs.msg import Header
@@ -45,6 +49,10 @@ class Bridge:
 
     @classmethod
     def reference_to_header(cls, reference: PassiveReferenceFrame):
+        if not isinstance(reference, PassiveReferenceFrame):
+            raise TypeError(
+                f"Input reference is {type(reference)} but must be PassiveReferenceFrame"
+            )
         return Header(
             frame_id=reference.frame_id, stamp=cls.time_to_rostime(reference.timestamp)
         )
@@ -62,7 +70,8 @@ class Bridge:
 
     @staticmethod
     def reference_to_tf2(reference: ReferenceFrame) -> Transform:
-        dx, dq = reference.transform
-        translation = Vector3(x=dx[0], y=dx[1], z=dx[2])
-        rotation = Quaternion(x=dq.x, y=dq.y, z=dq.z, w=dq.w)
+        T = reference.transform
+        q = transform_orientation(T[:3, :3], "dcm", "quat")
+        translation = Vector3(x=T[0, 3], y=T[1, 3], z=T[2, 3])
+        rotation = Quaternion(x=q.x, y=q.y, z=q.z, w=q.w)
         return Transform(translation=translation, rotation=rotation)

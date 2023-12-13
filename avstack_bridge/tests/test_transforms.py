@@ -1,7 +1,15 @@
 import numpy as np
 import PyKDL
 import quaternion
-from avstack.geometry import PassiveReferenceFrame, q_mult_vec, transform_orientation
+from avstack.geometry import (
+    Attitude,
+    GlobalOrigin3D,
+    PassiveReferenceFrame,
+    Position,
+    ReferenceFrame,
+    q_mult_vec,
+    transform_orientation,
+)
 from geometry_msgs.msg import (
     Point,
     PointStamped,
@@ -13,6 +21,7 @@ from geometry_msgs.msg import (
     Vector3Stamped,
 )
 from std_msgs.msg import Header
+from utilities import random_quat
 
 from avstack_bridge import base, geometry, transform
 
@@ -24,8 +33,42 @@ header_world = base.Bridge.reference_to_header(passive_world_reference)
 header_agent = base.Bridge.reference_to_header(passive_agent_reference)
 
 
-def random_quat():
-    return transform_orientation(np.random.rand(3), "euler", "quat")
+def transform_to_kdl(t):
+    return PyKDL.Frame(
+        PyKDL.Rotation.Quaternion(
+            t.transform.rotation.x,
+            t.transform.rotation.y,
+            t.transform.rotation.z,
+            t.transform.rotation.w,
+        ),
+        PyKDL.Vector(
+            t.transform.translation.x,
+            t.transform.translation.y,
+            t.transform.translation.z,
+        ),
+    )
+
+
+def reference_to_kdl(reference: ReferenceFrame) -> PyKDL.Frame:
+    T = reference.transform
+    dq = transform_orientation(T[:3, :3], "dcm", "quat")
+    dx = T[:3, 3]
+    return PyKDL.Frame(
+        PyKDL.Rotation.Quaternion(dq.x, dq.y, dq.z, dq.w),
+        PyKDL.Vector(dx[0], dx[1], dx[2]),
+    )
+
+
+def frame_to_matrix(frame):
+    T_frame = np.array(
+        [
+            [frame[(0, 0)], frame[(0, 1)], frame[(0, 2)], frame[(0, 3)]],
+            [frame[(1, 0)], frame[(1, 1)], frame[(1, 2)], frame[(1, 3)]],
+            [frame[(2, 0)], frame[(2, 1)], frame[(2, 2)], frame[(2, 3)]],
+            [0, 0, 0, 1],
+        ]
+    )
+    return T_frame
 
 
 def test_random_quat():
@@ -179,34 +222,6 @@ def test_do_transform_pose_full():
     assert np.isclose(pose_agent_ros.orientation.w, qf.w)
 
 
-def transform_to_kdl(t):
-    return PyKDL.Frame(
-        PyKDL.Rotation.Quaternion(
-            t.transform.rotation.x,
-            t.transform.rotation.y,
-            t.transform.rotation.z,
-            t.transform.rotation.w,
-        ),
-        PyKDL.Vector(
-            t.transform.translation.x,
-            t.transform.translation.y,
-            t.transform.translation.z,
-        ),
-    )
-
-
-def frame_to_matrix(frame):
-    T_frame = np.array(
-        [
-            [frame[(0, 0)], frame[(0, 1)], frame[(0, 2)], frame[(0, 3)]],
-            [frame[(1, 0)], frame[(1, 1)], frame[(1, 2)], frame[(1, 3)]],
-            [frame[(2, 0)], frame[(2, 1)], frame[(2, 2)], frame[(2, 3)]],
-            [0, 0, 0, 1],
-        ]
-    )
-    return T_frame
-
-
 def pose_to_matrix(pose):
     p_vec = Vector3(x=pose.position.x, y=pose.position.y, z=pose.position.z)
     tf = TransformStamped(
@@ -332,150 +347,84 @@ Testing basic ROS2 implementations against AVstack
 """
 
 
-def test_avstack_to_kdl():
-    pass
+def test_do_transform_point():
+    xp = np.array([1, 2, 3], dtype=float)
+
+    # conversion with AVstack
+    agent_reference = ReferenceFrame(
+        x=np.random.rand(3),
+        q=random_quat(),
+        reference=GlobalOrigin3D,
+        from_frame="world",
+        to_frame="agent",
+        timestamp=t0,
+    )
+    xp_avstack = Position(xp, reference=GlobalOrigin3D)
+    xp_avstack_new = xp_avstack.change_reference(agent_reference, inplace=False)
+
+    # conversion with kdl
+    agent_frame = reference_to_kdl(agent_reference)
+    xp_kdl = PyKDL.Vector(*xp)
+    xp_kdl_new = agent_frame * xp_kdl
+    xp_kdl_new = np.array([xp_kdl_new.x(), xp_kdl_new.y(), xp_kdl_new.z()])
+
+    # conversion with ros
+    agent_tf = base.Bridge.reference_to_tf2_stamped(agent_reference)
+    xp_ros = PointStamped(point=Point(x=xp[0], y=xp[1], z=xp[2]))
+    xp_ros_new = transform.do_transform_point(xp_ros, agent_tf).point
+    xp_ros_new = np.array([xp_ros_new.x, xp_ros_new.y, xp_ros_new.z])
+
+    assert np.allclose(xp_avstack_new.x, xp_kdl_new)
+    assert np.allclose(xp_avstack_new.x, xp_ros_new)
 
 
-# def test_do_transform_point_vs_avstack():
-#     # conversion with avstack
-#     active_agent_reference = ReferenceFrame(
-#         x=np.random.rand(3),
-#         q=random_quat(),
-#         reference=GlobalOrigin3D,
-#         from_frame="world",
-#         to_frame="agent",
-#         timestamp=t0,
-#     )
-#     position_world_av = Position(np.random.rand(3), reference=GlobalOrigin3D)
-#     position_agent_av = position_world_av.change_reference(
-#         active_agent_reference, inplace=False
-#     )
+def test_do_transform_pose():
+    """NOTE the definition of a ros pose differs from avstack's"""
+    xp = np.array([1, 2, 3], dtype=float)
+    qp = random_quat()
+    xp_avstack_active = Position(xp, reference=GlobalOrigin3D)
+    qp_avstack_active = Attitude(qp, reference=GlobalOrigin3D)
+    xp_avstack_passive = Position(xp, reference=GlobalOrigin3D.as_passive_frame())
+    qp_avstack_passive = Attitude(qp, reference=GlobalOrigin3D.as_passive_frame())
 
-#     # conversion with ROS2
-#     position_world_ros = Point(
-#         x=position_world_av.x[0], y=position_world_av.x[1], z=position_world_av.x[2]
-#     )
-#     tf_world_to_agent = base.Bridge.reference_to_tf2_stamped(active_agent_reference)
-#     position_agent_ros = transform.do_transform_point(
-#         PointStamped(header=header_world, point=position_world_ros), tf_world_to_agent
-#     ).point
+    # conversion with AVstack
+    agent_reference = ReferenceFrame(
+        x=np.random.rand(3),
+        q=random_quat(),
+        reference=GlobalOrigin3D,
+        from_frame="world",
+        to_frame="agent",
+        timestamp=t0,
+    )
+    xp_avstack_new = xp_avstack_active.change_reference(agent_reference, inplace=False)
+    qp_avstack_new = qp_avstack_active.change_reference(agent_reference, inplace=False)
+    xp_avstack_new_passive = Position(
+        xp_avstack_new.x, reference=agent_reference.as_passive_frame()
+    )
+    qp_avstack_new_passive = Attitude(
+        qp_avstack_new.q, reference=agent_reference.as_passive_frame()
+    )
+    pose_avstack_new = geometry.GeometryBridge.avstack_to_pose(
+        pos=xp_avstack_new_passive, att=qp_avstack_new_passive, stamped=True
+    )
+    xp_ros_new_avstack, qp_ros_new_avstack = geometry.GeometryBridge.pose_to_avstack(
+        pose=pose_avstack_new.pose, header=pose_avstack_new.header
+    )
 
-#     # check results
-#     assert np.isclose(position_agent_av.x[0], position_agent_ros.x)
-#     assert np.isclose(position_agent_av.x[1], position_agent_ros.y)
-#     assert np.isclose(position_agent_av.x[2], position_agent_ros.z)
+    # conversion with ros
+    agent_tf = base.Bridge.reference_to_tf2_stamped(agent_reference)
+    pose_ros = geometry.GeometryBridge.avstack_to_pose(
+        pos=xp_avstack_passive, att=qp_avstack_passive, stamped=True
+    )
+    pose_ros_new = transform.do_transform_pose(pose_ros, agent_tf)
+    xp_ros_new, qp_ros_new = geometry.GeometryBridge.pose_to_avstack(
+        pose=pose_ros_new.pose, header=pose_ros_new.header
+    )
 
+    assert np.allclose(xp_ros_new_avstack.x, xp_ros_new.x)
+    assert np.allclose(qp_ros_new_avstack.q, qp_ros_new.q)
 
-# def test_do_transform_pose_vs_avstack():
-#     # conversion with avstack
-#     active_agent_reference = ReferenceFrame(
-#         x=np.random.rand(3),
-#         q=random_quat(),
-#         reference=GlobalOrigin3D,
-#         from_frame="world",
-#         to_frame="agent",
-#         timestamp=t0,
-#     )
-#     position_world_av = Position(np.random.rand(3), reference=GlobalOrigin3D)
-#     attitude_world_av = Attitude(random_quat(), reference=GlobalOrigin3D)
-#     position_agent_av = position_world_av.change_reference(
-#         active_agent_reference, inplace=False
-#     )
-#     attitude_agent_av = attitude_world_av.change_reference(
-#         active_agent_reference, inplace=False
-#     )
-
-#     # conversion with ROS2
-#     position_world_ros = Point(
-#         x=position_world_av.x[0], y=position_world_av.x[1], z=position_world_av.x[2]
-#     )
-#     orientation_world_ros = Quaternion(
-#         x=attitude_world_av.q.x, y=attitude_world_av.q.y, z=attitude_world_av.q.z, w=attitude_world_av.q.w
-#     )
-#     pose_world_ros = Pose(position=position_world_ros, orientation=orientation_world_ros)
-#     tf_world_to_agent = base.Bridge.reference_to_tf2_stamped(active_agent_reference)
-#     pose_agent_ros = transform.do_transform_pose(
-#         pose_world_ros, tf_world_to_agent
-#     )
-
-
-#     # check results
-#     x_ros, q_ros = geometry.GeometryBridge.pose_to_avstack(pose_agent_ros, header=header_agent)
-#     assert np.allclose(x_ros.x, position_agent_av.x)
-#     assert quaternion.allclose(q_ros.q, attitude_agent_av.q) or \
-#            quaternion.allclose(-1*q_ros.q, attitude_agent_av.q, atol=0.0000001)
-
-# assert np.isclose(position_agent_av.x[0], pose_agent_ros.position.x)
-# assert np.isclose(position_agent_av.x[1], pose_agent_ros.position.y)
-# assert np.isclose(position_agent_av.x[2], pose_agent_ros.position.z)
-# assert np.isclose(attitude_agent_av.q.x,  pose_agent_ros.orientation.x)
-# assert np.isclose(attitude_agent_av.q.y,  pose_agent_ros.orientation.y)
-# assert np.isclose(attitude_agent_av.q.z,  pose_agent_ros.orientation.z)
-# assert np.isclose(attitude_agent_av.q.w,  pose_agent_ros.orientation.w)
 
 """
 Testing custom transform implementations
 """
-
-
-# def test_do_transform_point_no_quaternion():
-#     # get active reference frame
-#     active_agent_reference = ReferenceFrame(
-#         x=np.array([1,2,3]),
-#         q=np.quaternion(1),
-#         reference=GlobalOrigin3D,
-#         from_frame="world",
-#         to_frame="agent",
-#         timestamp=t0,
-#     )
-#     active_world_reference = GlobalOrigin3D
-#     active_world_reference.timestamp = t0
-#     tf_world_to_agent = base.Bridge.reference_to_tf2_stamped(active_agent_reference)
-
-#     # define position in world frame
-#     pos_in_world_passive = Position(np.array([1,1,1]), reference=passive_world_reference)
-#     pos_in_world_active = Position(pos_in_world_passive.x, reference=active_world_reference)
-
-#     # transform point via bridge transforms
-#     point_in_world = geometry.GeometryBridge.avstack_to_position(pos_in_world_passive, stamped=True)
-#     point_in_agent = transform.do_transform_point(point_in_world, transform=tf_world_to_agent)
-#     position_via_bridge = geometry.GeometryBridge.position_to_avstack(point_in_agent.point, header=point_in_agent.header)
-
-#     # transform point via avstack
-#     position_via_avstack = pos_in_world_active.change_reference(active_agent_reference, inplace=False)
-
-#     # check results
-#     assert np.allclose(position_via_avstack.x, position_via_bridge.x)
-
-
-# def test_do_transform_object_state():
-#     obj_world_msg = objects.ObjectStateBridge.avstack_to_objectstatestamped(
-#         obj_in_world_passive
-#     )
-#     assert obj_world_msg.header.frame_id == "world"
-
-#     obj_in_world_to_agent_msg = transform.do_transform_objectstatestamped(
-#         obj_world_msg, tf=tf_world_to_agent
-#     )
-#     assert obj_in_world_to_agent_msg.header.frame_id == "agent"
-
-#     obj_in_world_to_agent = objects.ObjectStateBridge.objectstate_to_avstack(
-#         obj_in_world_to_agent_msg
-#     )
-#     assert np.allclose(obj_in_world_to_agent.position.x, obj_in_agent_active.position.x)
-
-
-# def test_do_transform_box_track():
-#     raise
-
-
-# def test_do_transform_box():
-#     raise
-
-
-# def test_do_transform_box_track_covariance():
-#     raise
-
-
-# def test_quat_to_rot():
-#     raise

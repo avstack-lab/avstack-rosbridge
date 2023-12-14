@@ -57,18 +57,8 @@ class GeometryBridge:
         pose: Pose,
         header: Union[Header, None],
     ) -> Tuple[Position, Attitude]:
-        """Pose is unique in that ros considers it synonymous with a frame/transform"""
-        reference = Bridge.header_to_reference(header=header)
-        q_pt_to_a = np.quaternion(
-            pose.orientation.w,
-            pose.orientation.x,
-            pose.orientation.y,
-            pose.orientation.z,
-        )
-        q_a_to_pt = q_pt_to_a.conjugate()
-        t_a_to_pt_in_a = np.array([pose.position.x, pose.position.y, pose.position.z])
-        position = Position(x=t_a_to_pt_in_a, reference=reference)
-        attitude = Attitude(q=q_a_to_pt, reference=reference)
+        position = cls.position_to_avstack(pose.position, header=header)
+        attitude = cls.attitude_to_avstack(pose.orientation, header=header)
         return position, attitude
 
     @classmethod
@@ -197,13 +187,10 @@ class GeometryBridge:
         cls, pos: Position, att: Attitude, stamped: bool
     ) -> Union[Pose, PoseStamped]:
         """Pose is unique in that ros considers it synonymous with a frame/transform"""
-        t_a_to_pt_in_a = pos.x
-        q_pt_to_a = att.q.conjugate()
-        position = Point(x=t_a_to_pt_in_a[0], y=t_a_to_pt_in_a[1], z=t_a_to_pt_in_a[2])
-        orientation = Quaternion(
-            x=q_pt_to_a.x, y=q_pt_to_a.y, z=q_pt_to_a.z, w=q_pt_to_a.w
+        pose = Pose(
+            position=cls.avstack_to_position(pos, stamped=False),
+            orientation=cls.avstack_to_attitude(att, stamped=False),
         )
-        pose = Pose(position=position, orientation=orientation)
         if stamped:
             header = Bridge.reference_to_header(pos.reference)
             pose = PoseStamped(header=header, pose=pose)

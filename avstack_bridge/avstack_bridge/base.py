@@ -70,8 +70,8 @@ class Bridge:
 
     @staticmethod
     def reference_to_tf2(reference: ReferenceFrame) -> Transform:
-        T = reference.transform
-        q = transform_orientation(T[:3, :3], "dcm", "quat")
-        translation = Vector3(x=T[0, 3], y=T[1, 3], z=T[2, 3])
+        x = reference.x
+        q = reference.q
+        translation = Vector3(x=x[0], y=x[1], z=x[2])
         rotation = Quaternion(x=q.x, y=q.y, z=q.z, w=q.w)
         return Transform(translation=translation, rotation=rotation)

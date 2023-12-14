@@ -50,9 +50,8 @@ def transform_to_kdl(t):
 
 
 def reference_to_kdl(reference: ReferenceFrame) -> PyKDL.Frame:
-    T = reference.transform
-    dq = transform_orientation(T[:3, :3], "dcm", "quat")
-    dx = T[:3, 3]
+    dq = reference.q
+    dx = reference.x
     return PyKDL.Frame(
         PyKDL.Rotation.Quaternion(dq.x, dq.y, dq.z, dq.w),
         PyKDL.Vector(dx[0], dx[1], dx[2]),
@@ -71,11 +70,49 @@ def frame_to_matrix(frame):
     return T_frame
 
 
+
+def pose_to_matrix(pose):
+    p_vec = Vector3(x=pose.position.x, y=pose.position.y, z=pose.position.z)
+    tf = TransformStamped(
+        transform=Transform(rotation=pose.orientation, translation=p_vec)
+    )
+    return frame_to_matrix(transform_to_kdl(tf))
+
+
+def world_tf():
+    tf_stamped = TransformStamped(
+        header=header_world, child_frame_id="agent", transform=Transform()
+    )
+    return tf_stamped
+
+
+def random_tf():
+    dx = np.random.rand(3)
+    dq = random_quat()
+    tf_translation = Vector3(x=dx[0], y=dx[1], z=dx[2])
+    tf_rotation = Quaternion(x=dq.x, y=dq.y, z=dq.z, w=dq.w)
+    tf = Transform(translation=tf_translation, rotation=tf_rotation)
+    tf_stamped = TransformStamped(
+        header=header_world, child_frame_id="agent", transform=tf
+    )
+    return tf_stamped
+
+
+def test_invert_tf():
+    tf = random_tf()
+    tf_inv = transform.invert_transform(tf)
+    tf_inv_inv = transform.invert_transform(tf_inv)
+    assert np.allclose(
+        frame_to_matrix(transform_to_kdl(tf)),
+        frame_to_matrix(transform_to_kdl(tf_inv_inv))
+    )
+
+
 def test_random_quat():
     q = random_quat()
     assert np.allclose(q, np.normalized(q))
     assert np.allclose(q.conjugate(), np.normalized(q.conjugate()))
-
+    
 
 """
 Testing basic ROS2 implementations against straight math
@@ -222,33 +259,6 @@ def test_do_transform_pose_full():
     assert np.isclose(pose_agent_ros.orientation.w, qf.w)
 
 
-def pose_to_matrix(pose):
-    p_vec = Vector3(x=pose.position.x, y=pose.position.y, z=pose.position.z)
-    tf = TransformStamped(
-        transform=Transform(rotation=pose.orientation, translation=p_vec)
-    )
-    return frame_to_matrix(transform_to_kdl(tf))
-
-
-def world_tf():
-    tf_stamped = TransformStamped(
-        header=header_world, child_frame_id="agent", transform=Transform()
-    )
-    return tf_stamped
-
-
-def random_tf():
-    dx = np.random.rand(3)
-    dq = random_quat()
-    tf_translation = Vector3(x=dx[0], y=dx[1], z=dx[2])
-    tf_rotation = Quaternion(x=dq.x, y=dq.y, z=dq.z, w=dq.w)
-    tf = Transform(translation=tf_translation, rotation=tf_rotation)
-    tf_stamped = TransformStamped(
-        header=header_world, child_frame_id="agent", transform=tf
-    )
-    return tf_stamped
-
-
 def test_frame_create():
     # -- tf to matrix
     tf = random_tf()
@@ -369,9 +379,10 @@ def test_do_transform_point():
     xp_kdl_new = np.array([xp_kdl_new.x(), xp_kdl_new.y(), xp_kdl_new.z()])
 
     # conversion with ros
-    agent_tf = base.Bridge.reference_to_tf2_stamped(agent_reference)
+    agent_tf_frame = base.Bridge.reference_to_tf2_stamped(agent_reference)
+    agent_tf_data = transform.invert_transform(agent_tf_frame)
     xp_ros = PointStamped(point=Point(x=xp[0], y=xp[1], z=xp[2]))
-    xp_ros_new = transform.do_transform_point(xp_ros, agent_tf).point
+    xp_ros_new = transform.do_transform_point(xp_ros, agent_tf_data).point
     xp_ros_new = np.array([xp_ros_new.x, xp_ros_new.y, xp_ros_new.z])
 
     assert np.allclose(xp_avstack_new.x, xp_kdl_new)
@@ -412,11 +423,12 @@ def test_do_transform_pose():
     )
 
     # conversion with ros
-    agent_tf = base.Bridge.reference_to_tf2_stamped(agent_reference)
+    agent_tf_frame = base.Bridge.reference_to_tf2_stamped(agent_reference)
+    agent_tf_data = transform.invert_transform(agent_tf_frame)
     pose_ros = geometry.GeometryBridge.avstack_to_pose(
         pos=xp_avstack_passive, att=qp_avstack_passive, stamped=True
     )
-    pose_ros_new = transform.do_transform_pose(pose_ros, agent_tf)
+    pose_ros_new = transform.do_transform_pose_stamped(pose_ros, agent_tf_data)
     xp_ros_new, qp_ros_new = geometry.GeometryBridge.pose_to_avstack(
         pose=pose_ros_new.pose, header=pose_ros_new.header
     )

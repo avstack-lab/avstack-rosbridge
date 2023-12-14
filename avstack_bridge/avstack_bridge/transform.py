@@ -1,37 +1,49 @@
+"""
+Reference frames are always confusing. Here is a description of how they
+work in TF2 in my understanding:
+
+A transform in ROS is a way of representing a passive transformation
+that operates on the reference frame origins themselves. A transform
+with frame_id (source) A and child_frame_id (target) B specifies the transformation
+that will take the source frame to the target frame.
+
+To take a point in frame A to its corresponding point in frame B,
+you must get the active transform which is the inverse -- the
+transform from source B to target A. 
+
+https://answers.ros.org/question/194046/the-problem-of-transformerlookuptransform/
+https://answers.ros.org/question/229463/confusing-tf-transforms/
+https://robotics.stackexchange.com/questions/97873/default-transform-direction-if-tf2
+"""
+
 from typing import Union
 
 import numpy as np
+import quaternion
 from geometry_msgs.msg import (
     Pose,
     PoseStamped,
     Quaternion,
+    Transform,
     TransformStamped,
     Twist,
+    Vector3,
     Vector3Stamped,
 )
 from std_msgs.msg import Header
-from tf2_geometry_msgs import do_transform_point
 from tf2_geometry_msgs import (  # noqa # pylint: disable=unused-import
-    do_transform_pose as do_transform_pose_nostamp,
+    do_transform_point,
+    do_transform_pose,
+    do_transform_pose_stamped,
+    do_transform_vector3,
 )
 from tf2_geometry_msgs import do_transform_vector3
 from vision_msgs.msg import BoundingBox3D
 
 from avstack_msgs.msg import BoxTrack, BoxTrackStamped, ObjectState, ObjectStateStamped
+from avstack.geometry import q_mult_vec
 
 from .base import Bridge
-
-
-def do_transform_pose(
-    pose: Union[Pose, PoseStamped], tf: TransformStamped
-) -> Union[Pose, PoseStamped]:
-    if isinstance(pose, Pose):
-        return do_transform_pose_nostamp(pose, tf)
-    elif isinstance(pose, PoseStamped):
-        header = Header(frame_id=tf.child_frame_id, stamp=tf.header.stamp)
-        return PoseStamped(header=header, pose=do_transform_pose_nostamp(pose.pose, tf))
-    else:
-        raise NotImplementedError(type(pose))
 
 
 def do_transform_objectstatestamped(
@@ -133,6 +145,26 @@ def do_transform_boxtrack_covariance(
     R_block = np.block([[R, zero, zero], [zero, eye, zero], [zero, zero, R]])
     cov_out = R_block @ cov_in @ R_block.T
     return cov_out
+
+
+def transform_to_matrix(tf: Transform):
+    raise
+
+
+def invert_transform(tf: TransformStamped):
+    """Invert the transform"""
+    q = np.quaternion(tf.transform.rotation.w, tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z)
+    t = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])
+    q2 = q.conjugate()
+    t2 = -q_mult_vec(q, t)
+    rotation = Quaternion(x=q2.x, y=q2.y, z=q2.z, w=q2.w)
+    translation = Vector3(x=t2[0], y=t2[1], z=t2[2])
+    header = Header(frame_id=tf.child_frame_id, stamp=tf.header.stamp)
+    return TransformStamped(
+        header=header,
+        child_frame_id=tf.header.frame_id,
+        transform=Transform(translation=translation, rotation=rotation)
+    )
 
 
 def _quat_to_rot(tf_rot: Quaternion):

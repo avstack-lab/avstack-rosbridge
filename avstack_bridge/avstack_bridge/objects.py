@@ -31,17 +31,13 @@ class ObjectStateBridge:
         else:
             raise NotImplementedError(type(msg_obj))
 
+        position, attitude = GeometryBridge.pose_to_avstack(obj.pose, header=header)
+
         obj_state = ObjectStateAV(obj_type=obj.obj_type)
         obj_state.set(
             t=timestamp,
-            position=GeometryBridge.position_to_avstack(
-                obj.pose.position,
-                header=header,
-            ),
-            attitude=GeometryBridge.attitude_to_avstack(
-                obj.pose.orientation,
-                header=header,
-            ),
+            position=position,
+            attitude=attitude,
             velocity=GeometryBridge.velocity_to_avstack(
                 obj.twist.linear,
                 header=header,

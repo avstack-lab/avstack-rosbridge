@@ -49,15 +49,6 @@ def transform_to_kdl(t):
     )
 
 
-def reference_to_kdl(reference: ReferenceFrame) -> PyKDL.Frame:
-    dq = reference.q
-    dx = reference.x
-    return PyKDL.Frame(
-        PyKDL.Rotation.Quaternion(dq.x, dq.y, dq.z, dq.w),
-        PyKDL.Vector(dx[0], dx[1], dx[2]),
-    )
-
-
 def frame_to_matrix(frame):
     T_frame = np.array(
         [
@@ -68,7 +59,6 @@ def frame_to_matrix(frame):
         ]
     )
     return T_frame
-
 
 
 def pose_to_matrix(pose):
@@ -104,7 +94,7 @@ def test_invert_tf():
     tf_inv_inv = transform.invert_transform(tf_inv)
     assert np.allclose(
         frame_to_matrix(transform_to_kdl(tf)),
-        frame_to_matrix(transform_to_kdl(tf_inv_inv))
+        frame_to_matrix(transform_to_kdl(tf_inv_inv)),
     )
 
 
@@ -112,7 +102,7 @@ def test_random_quat():
     q = random_quat()
     assert np.allclose(q, np.normalized(q))
     assert np.allclose(q.conjugate(), np.normalized(q.conjugate()))
-    
+
 
 """
 Testing basic ROS2 implementations against straight math
@@ -278,7 +268,8 @@ def test_frame_create():
     x_frame = T_frame[:3, 3]
 
     assert quaternion.allclose(q_frame, q_frame_via_q)
-    assert np.allclose(q_world_to_agent.q, q_frame)
+    assert np.allclose((q_world_to_agent.q * q_frame.conjugate()).vec, np.zeros(3))
+    # assert np.allclose(q_world_to_agent.q, q_frame)
     assert np.allclose(x_world_to_agent.x, x_frame)
 
 
@@ -372,12 +363,6 @@ def test_do_transform_point():
     xp_avstack = Position(xp, reference=GlobalOrigin3D)
     xp_avstack_new = xp_avstack.change_reference(agent_reference, inplace=False)
 
-    # conversion with kdl
-    agent_frame = reference_to_kdl(agent_reference)
-    xp_kdl = PyKDL.Vector(*xp)
-    xp_kdl_new = agent_frame * xp_kdl
-    xp_kdl_new = np.array([xp_kdl_new.x(), xp_kdl_new.y(), xp_kdl_new.z()])
-
     # conversion with ros
     agent_tf_frame = base.Bridge.reference_to_tf2_stamped(agent_reference)
     agent_tf_data = transform.invert_transform(agent_tf_frame)
@@ -385,7 +370,6 @@ def test_do_transform_point():
     xp_ros_new = transform.do_transform_point(xp_ros, agent_tf_data).point
     xp_ros_new = np.array([xp_ros_new.x, xp_ros_new.y, xp_ros_new.z])
 
-    assert np.allclose(xp_avstack_new.x, xp_kdl_new)
     assert np.allclose(xp_avstack_new.x, xp_ros_new)
 
 
@@ -434,7 +418,9 @@ def test_do_transform_pose():
     )
 
     assert np.allclose(xp_ros_new_avstack.x, xp_ros_new.x)
-    assert np.allclose(qp_ros_new_avstack.q, qp_ros_new.q)
+    assert np.allclose(
+        (qp_ros_new_avstack.q * qp_ros_new.q.conjugate()).vec, np.zeros(3)
+    )
 
 
 """

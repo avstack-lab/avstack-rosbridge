@@ -1,9 +1,5 @@
 import numpy as np
-from avstack.geometry import (
-    PassiveReferenceFrame,
-    ReferenceFrame,
-    transform_orientation,
-)
+from avstack.geometry import PassiveReferenceFrame, ReferenceFrame
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Quaternion, Transform, TransformStamped, Vector3
 from std_msgs.msg import Header
@@ -70,8 +66,9 @@ class Bridge:
 
     @staticmethod
     def reference_to_tf2(reference: ReferenceFrame) -> Transform:
+        # **conjugate quaternion for tf2**
         x = reference.x
-        q = reference.q
+        q = reference.q.conjugate()
         translation = Vector3(x=x[0], y=x[1], z=x[2])
         rotation = Quaternion(x=q.x, y=q.y, z=q.z, w=q.w)
         return Transform(translation=translation, rotation=rotation)

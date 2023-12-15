@@ -16,13 +16,10 @@ https://answers.ros.org/question/229463/confusing-tf-transforms/
 https://robotics.stackexchange.com/questions/97873/default-transform-direction-if-tf2
 """
 
-from typing import Union
 
 import numpy as np
-import quaternion
+from avstack.geometry import q_mult_vec
 from geometry_msgs.msg import (
-    Pose,
-    PoseStamped,
     Quaternion,
     Transform,
     TransformStamped,
@@ -37,11 +34,9 @@ from tf2_geometry_msgs import (  # noqa # pylint: disable=unused-import
     do_transform_pose_stamped,
     do_transform_vector3,
 )
-from tf2_geometry_msgs import do_transform_vector3
 from vision_msgs.msg import BoundingBox3D
 
 from avstack_msgs.msg import BoxTrack, BoxTrackStamped, ObjectState, ObjectStateStamped
-from avstack.geometry import q_mult_vec
 
 from .base import Bridge
 
@@ -153,17 +148,28 @@ def transform_to_matrix(tf: Transform):
 
 def invert_transform(tf: TransformStamped):
     """Invert the transform"""
-    q = np.quaternion(tf.transform.rotation.w, tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z)
-    t = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])
+    q = np.quaternion(
+        tf.transform.rotation.w,
+        tf.transform.rotation.x,
+        tf.transform.rotation.y,
+        tf.transform.rotation.z,
+    )
+    t = np.array(
+        [
+            tf.transform.translation.x,
+            tf.transform.translation.y,
+            tf.transform.translation.z,
+        ]
+    )
     q2 = q.conjugate()
-    t2 = -q_mult_vec(q, t)
+    t2 = -q_mult_vec(q2, t)
     rotation = Quaternion(x=q2.x, y=q2.y, z=q2.z, w=q2.w)
     translation = Vector3(x=t2[0], y=t2[1], z=t2[2])
     header = Header(frame_id=tf.child_frame_id, stamp=tf.header.stamp)
     return TransformStamped(
         header=header,
         child_frame_id=tf.header.frame_id,
-        transform=Transform(translation=translation, rotation=rotation)
+        transform=Transform(translation=translation, rotation=rotation),
     )
 
 

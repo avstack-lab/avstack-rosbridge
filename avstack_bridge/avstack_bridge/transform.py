@@ -14,98 +14,99 @@ transform from source B to target A.
 https://answers.ros.org/question/194046/the-problem-of-transformerlookuptransform/
 https://answers.ros.org/question/229463/confusing-tf-transforms/
 https://robotics.stackexchange.com/questions/97873/default-transform-direction-if-tf2
+
+
+See: https://github.com/ros2/geometry2/tree/humble/tf2_geometry_msgs
 """
 
-
 import numpy as np
+import tf2_ros
 from avstack.geometry import q_mult_vec
 from geometry_msgs.msg import (
     Quaternion,
     Transform,
     TransformStamped,
-    Twist,
+    TwistStamped,
     Vector3,
     Vector3Stamped,
 )
 from std_msgs.msg import Header
-from tf2_geometry_msgs import (  # noqa # pylint: disable=unused-import
+from tf2_geometry_msgs import (  # noqa
     do_transform_point,
     do_transform_pose,
-    do_transform_pose_stamped,
     do_transform_vector3,
 )
 from vision_msgs.msg import BoundingBox3D
 
-from avstack_msgs.msg import BoxTrack, BoxTrackStamped, ObjectState, ObjectStateStamped
+from avstack_bridge.base import Bridge
+from avstack_msgs.msg import BoxTrack, BoxTrackStamped, ObjectStateStamped
 
-from .base import Bridge
 
-
-def do_transform_objectstatestamped(
-    obj_state: ObjectStateStamped, tf: TransformStamped
-) -> ObjectStateStamped:
-    obj_state_tf = ObjectStateStamped(
-        state=do_transform_objectstate(obj_state.state, tf)
+def do_transform_twist(
+    twist: TwistStamped, transform: TransformStamped
+) -> TwistStamped:
+    res = TwistStamped()
+    res.twist.linear = do_transform_vector3(
+        Vector3Stamped(header=twist.header, vector=twist.linear), transform
     )
-    obj_state_tf.header = tf.header
-    return obj_state_tf
+    res.twist.angular = do_transform_vector3(
+        Vector3Stamped(header=twist.header, vector=twist.angular), transform
+    )
+    res.header = transform.header
+    return res
+
+
+tf2_ros.TransformRegistration().add(TwistStamped, do_transform_twist)
 
 
 def do_transform_objectstate(
-    obj_state: ObjectState, tf: TransformStamped
-) -> ObjectState:
-    """Apply transform to object state
-
-    NOTE: the vector3 transform operates on stamped vectors but does not
-    actually use the header, so we can safely wrap the transformation
-    """
-    pose = do_transform_pose(obj_state.pose, tf)
-    linear_vel = do_transform_vector3(
-        Vector3Stamped(vector=obj_state.twist.linear), tf
-    ).vector
-    angular_vel = do_transform_vector3(
-        Vector3Stamped(vector=obj_state.twist.angular), tf
-    ).vector
-    linear_acc = do_transform_vector3(
-        Vector3Stamped(vector=obj_state.linear_acceleration), tf
-    ).vector
-    angular_acc = do_transform_vector3(
-        Vector3Stamped(vector=obj_state.angular_acceleration), tf
-    ).vector
-    box = do_transform_box(obj_state.box, tf)
-
-    obj_state_tf = ObjectState(
-        obj_type=obj_state.obj_type,
-        pose=pose,
-        twist=Twist(linear=linear_vel, angular=angular_vel),
-        linear_acceleration=linear_acc,
-        angular_acceleration=angular_acc,
-        box=box,
+    objectstate: ObjectStateStamped, transform: TransformStamped
+) -> ObjectStateStamped:
+    res = ObjectStateStamped()
+    res.state.obj_type = objectstate.state.obj_type
+    res.state.pose = do_transform_pose(objectstate.state.pose, transform)
+    res.state.twist = do_transform_twist(
+        TwistStamped(header=objectstate.header, twist=objectstate.state.twist),
+        transform,
     )
+    res.state.linear_acceleration = do_transform_vector3(
+        Vector3Stamped(
+            header=objectstate.header, vector=objectstate.state.linear_acceleration
+        ),
+        transform,
+    )
+    res.state.angular_acceleration = do_transform_vector3(
+        Vector3Stamped(
+            header=objectstate.header, vector=objectstate.state.angular_acceleration
+        ),
+        transform,
+    )
+    res.state.box = do_transform_box(objectstate.state.box, transform)
+    res.header = transform.header
+    return res
 
-    return obj_state_tf
+
+tf2_ros.TransformRegistration().add(ObjectStateStamped, do_transform_objectstate)
 
 
-def do_transform_boxtrackstamped(
-    box_track: BoxTrackStamped, tf: TransformStamped
+def do_transform_box(box: BoundingBox3D, tf: TransformStamped) -> BoundingBox3D:
+    center = do_transform_pose(box.center, tf)
+    box_tf = BoundingBox3D(center=center, size=box.size)
+    return box_tf
+
+
+tf2_ros.TransformRegistration().add(BoundingBox3D, do_transform_box)
+
+
+def do_transform_boxtrack(
+    boxtrack: BoxTrackStamped, tf: TransformStamped
 ) -> BoxTrackStamped:
-    box_track_tf = BoxTrackStamped(track=do_transform_boxtrack(box_track.track, tf))
-    box_track_tf.header = tf.header
-    return box_track_tf
-
-
-def do_transform_boxtrack(track: BoxTrack, tf: TransformStamped) -> BoxTrack:
-    """Apply transform to box track
-
-    NOTE: the vector3 transform note above applies
-
-    We also need to transform the covariance matrix
-    """
+    track = boxtrack.track
     p_tf = Bridge.ndarray_to_list(
         do_transform_boxtrack_covariance(Bridge.list_to_2d_ndarray(track.p), tf)
     )
     velocity = do_transform_vector3(Vector3Stamped(vector=track.velocity), tf).vector
-    box_track_tf = BoxTrack(
+    track_tf = BoxTrack(
         obj_type=track.obj_type,
         box=do_transform_box(track.box, tf),
         velocity=velocity,
@@ -116,13 +117,14 @@ def do_transform_boxtrack(track: BoxTrack, tf: TransformStamped) -> BoxTrack:
         identifier=track.identifier,
     )
 
-    return box_track_tf
+    boxtrack_tf = BoxTrackStamped()
+    boxtrack_tf.track = track_tf
+    boxtrack_tf.header = tf.header
+
+    return boxtrack_tf
 
 
-def do_transform_box(box: BoundingBox3D, tf: TransformStamped) -> BoundingBox3D:
-    center = do_transform_pose(box.center, tf)
-    box_tf = BoundingBox3D(center=center, size=box.size)
-    return box_tf
+tf2_ros.TransformRegistration().add(BoxTrackStamped, do_transform_boxtrack)
 
 
 def do_transform_boxtrack_covariance(
@@ -136,14 +138,56 @@ def do_transform_boxtrack_covariance(
     assert cov_in.shape == (9, 9), cov_in.shape
     zero = np.zeros((3, 3))
     eye = np.eye(3)
-    R = _quat_to_rot(tf.transform.rotation)
+
+    R = _get_rotmat_from_tf(tf.transform)
     R_block = np.block([[R, zero, zero], [zero, eye, zero], [zero, zero, R]])
     cov_out = R_block @ cov_in @ R_block.T
     return cov_out
 
 
-def transform_to_matrix(tf: Transform):
-    raise
+def _get_rotmat_from_tf(transform: TransformStamped) -> np.ndarray:
+    return _get_mat_from_quat(_get_quat_from_tf(transform))
+
+
+def _get_quat_from_tf(transform: TransformStamped) -> np.ndarray:
+    """Get the np array for the quaternion in wxyz"""
+    quat = [
+        transform.rotation.w,
+        transform.rotation.x,
+        transform.rotation.y,
+        transform.rotation.z,
+    ]
+    return np.array(quat)
+
+
+def _get_mat_from_quat(quaternion: np.ndarray) -> np.ndarray:
+    """
+    Convert a quaternion to a rotation matrix.
+
+    This method is based on quat2mat from https://github.com
+    f185e866ecccb66c545559bc9f2e19cb5025e0ab/transforms3d/quaternions.py#L101 ,
+    since that library is not available via rosdep.
+
+    :param quaternion: A numpy array containing the w, x, y, and z components of the quaternion
+    :returns: The rotation matrix
+    """
+    Nq = np.sum(np.square(quaternion))
+    if Nq < np.finfo(np.float64).eps:
+        return np.eye(3)
+
+    XYZ = quaternion[1:] * 2.0 / Nq
+    wXYZ = XYZ * quaternion[0]
+    xXYZ = XYZ * quaternion[1]
+    yYZ = XYZ[1:] * quaternion[2]
+    zZ = XYZ[2] * quaternion[3]
+
+    return np.array(
+        [
+            [1.0 - (yYZ[0] + zZ), xXYZ[1] - wXYZ[2], xXYZ[2] + wXYZ[1]],
+            [xXYZ[1] + wXYZ[2], 1.0 - (xXYZ[0] + zZ), yYZ[1] - wXYZ[0]],
+            [xXYZ[2] - wXYZ[1], yYZ[1] + wXYZ[0], 1.0 - (xXYZ[0] + yYZ[0])],
+        ]
+    )
 
 
 def invert_transform(tf: TransformStamped):
@@ -171,37 +215,3 @@ def invert_transform(tf: TransformStamped):
         child_frame_id=tf.header.frame_id,
         transform=Transform(translation=translation, rotation=rotation),
     )
-
-
-def _quat_to_rot(tf_rot: Quaternion):
-    # Converting the Quaternion to a Rotation Matrix first
-    # Taken from: https://automaticaddison.com/how-to-convert-a-quaternion-to-a-rotation-matrix/
-    q0 = tf_rot.w
-    q1 = tf_rot.x
-    q2 = tf_rot.y
-    q3 = tf_rot.z
-
-    # First row of the rotation matrix
-    r00 = 2 * (q0 * q0 + q1 * q1) - 1
-    r01 = 2 * (q1 * q2 - q0 * q3)
-    r02 = 2 * (q1 * q3 + q0 * q2)
-
-    # Second row of the rotation matrix
-    r10 = 2 * (q1 * q2 + q0 * q3)
-    r11 = 2 * (q0 * q0 + q2 * q2) - 1
-    r12 = 2 * (q2 * q3 - q0 * q1)
-
-    # Third row of the rotation matrix
-    r20 = 2 * (q1 * q3 - q0 * q2)
-    r21 = 2 * (q2 * q3 + q0 * q1)
-    r22 = 2 * (q0 * q0 + q3 * q3) - 1
-
-    # Code reference: https://github.com/ros2/geometry2/pull/430
-    # Mathematical Reference:
-    # A. L. Garcia, “Linear Transformations of Random Vectors,” in Probability,
-    # Statistics, and Random Processes For Electrical Engineering, 3rd ed.,
-    # Pearson Prentice Hall, 2008, pp. 320–322.
-
-    R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
-
-    return R

@@ -35,7 +35,14 @@ class TrackBridge:
         )
 
     @staticmethod
-    def boxtrack_to_avstack(trk_msg: BoxTrack, header: Header) -> BasicBoxTrack3D:
+    def boxtrack_to_avstack(
+        trk_msg: Union[BoxTrack, BoxTrackStamped], header: Union[Header, None] = None
+    ) -> BasicBoxTrack3D:
+        if isinstance(trk_msg, BoxTrackStamped):
+            if header is not None:
+                raise RuntimeError("Passed stamped and a header...")
+            header = trk_msg.header
+            trk_msg = trk_msg.track
         return BasicBoxTrack3D(
             t0=0,
             box3d=GeometryBridge.box3d_to_avstack(trk_msg.box, header=header),

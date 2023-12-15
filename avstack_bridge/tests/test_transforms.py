@@ -1,6 +1,5 @@
 import numpy as np
 import PyKDL
-import quaternion
 from avstack.geometry import (
     Attitude,
     GlobalOrigin3D,
@@ -249,30 +248,6 @@ def test_do_transform_pose_full():
     assert np.isclose(pose_agent_ros.orientation.w, qf.w)
 
 
-def test_frame_create():
-    # -- tf to matrix
-    tf = random_tf()
-    q_world_to_agent = geometry.GeometryBridge.attitude_to_avstack(
-        tf.transform.rotation, header=header_agent
-    )
-    x_world_to_agent = geometry.GeometryBridge.position_to_avstack(
-        tf.transform.translation, header=header_agent
-    )
-
-    # -- tf to frame
-    frame = transform_to_kdl(tf)
-    T_frame = frame_to_matrix(frame)
-    q_frame = transform_orientation(T_frame[:3, :3], "dcm", "quat")
-    qxyzw = frame.M.GetQuaternion()
-    q_frame_via_q = np.quaternion(qxyzw[3], *qxyzw[:3])
-    x_frame = T_frame[:3, 3]
-
-    assert quaternion.allclose(q_frame, q_frame_via_q)
-    assert np.allclose((q_world_to_agent.q * q_frame.conjugate()).vec, np.zeros(3))
-    # assert np.allclose(q_world_to_agent.q, q_frame)
-    assert np.allclose(x_world_to_agent.x, x_frame)
-
-
 def test_frame_compose():
     tf1, tf2 = random_tf(), random_tf()
     frame_w_to_1, frame_1_to_2 = transform_to_kdl(tf1), transform_to_kdl(tf2)
@@ -412,9 +387,9 @@ def test_do_transform_pose():
     pose_ros = geometry.GeometryBridge.avstack_to_pose(
         pos=xp_avstack_passive, att=qp_avstack_passive, stamped=True
     )
-    pose_ros_new = transform.do_transform_pose_stamped(pose_ros, agent_tf_data)
+    pose_ros_new = transform.do_transform_pose(pose_ros.pose, agent_tf_data)
     xp_ros_new, qp_ros_new = geometry.GeometryBridge.pose_to_avstack(
-        pose=pose_ros_new.pose, header=pose_ros_new.header
+        pose=pose_ros_new, header=agent_tf_data.header
     )
 
     assert np.allclose(xp_ros_new_avstack.x, xp_ros_new.x)

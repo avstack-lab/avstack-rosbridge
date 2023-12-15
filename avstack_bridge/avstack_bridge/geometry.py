@@ -76,7 +76,7 @@ class GeometryBridge:
         attitude: Quaternion,
         header: Union[Header, None],
     ) -> Attitude:
-        q = np.quaternion(attitude.w, attitude.x, attitude.y, attitude.z)
+        q = np.quaternion(-attitude.w, attitude.x, attitude.y, attitude.z)
         return cls._to_avstack(aclass=Attitude, data=q, header=header)
 
     @classmethod

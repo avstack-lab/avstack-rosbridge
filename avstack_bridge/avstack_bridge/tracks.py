@@ -4,13 +4,7 @@ from avstack.datastructs import DataContainer
 from avstack.modules.tracking.tracks import BasicBoxTrack3D
 from std_msgs.msg import Header
 
-from avstack_msgs.msg import (
-    BoxTrack,
-    BoxTrackArray,
-    BoxTrackArrayWithSender,
-    BoxTrackStamped,
-    ObjectStateArray,
-)
+from avstack_msgs.msg import BoxTrack, BoxTrackArray, BoxTrackStamped, ObjectStateArray
 
 from .base import Bridge
 from .geometry import GeometryBridge
@@ -23,13 +17,14 @@ class TrackBridge:
         cls, trks_msg: Union[BoxTrackArray, ObjectStateArray]
     ) -> DataContainer:
         timestamp = Bridge.rostime_to_time(trks_msg.header.stamp)
-        if isinstance(trks_msg, (BoxTrackArrayWithSender, BoxTrackArray)):
+        try:
             tracks = [
                 cls.boxtrack_to_avstack(trk_msg=trk, header=trks_msg.header)
                 for trk in trks_msg.tracks
             ]
-        else:
+        except AttributeError:
             tracks = ObjectStateBridge.objectstatearray_to_avstack(trks_msg)
+
         return DataContainer(
             frame=0, timestamp=timestamp, data=tracks, source_identifier="0"
         )
@@ -87,14 +82,14 @@ class TrackBridge:
         cls, tracks: DataContainer, header=None, default_type=ObjectStateArray
     ) -> Union[ObjectStateArray, BoxTrackArray]:
         if len(tracks) > 0:
-            if isinstance(tracks[0], BasicBoxTrack3D):
-                if not header:
-                    header = Bridge.reference_to_header(tracks.reference)
+            if not header:
+                header = Bridge.reference_to_header(tracks.reference)
+            try:
                 trks_msg = BoxTrackArray(
                     header=header,
                     tracks=[cls.avstack_to_boxtrack(trk) for trk in tracks],
                 )
-            else:
+            except AttributeError:
                 trks_msg = ObjectStateBridge.avstack_to_objecstatearray(
                     obj_states=[trk.as_object() for trk in tracks],
                     header=header,

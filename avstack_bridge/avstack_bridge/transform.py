@@ -17,6 +17,7 @@ https://robotics.stackexchange.com/questions/97873/default-transform-direction-i
 
 
 See: https://github.com/ros2/geometry2/tree/humble/tf2_geometry_msgs
+And: https://docs.ros.org/en/ros2_packages/rolling/api/tf2_ros/generated/classtf2__ros_1_1BufferInterface.html
 """
 
 import numpy as np
@@ -90,8 +91,8 @@ tf2_ros.TransformRegistration().add(ObjectStateStamped, do_transform_objectstate
 
 
 def do_transform_box(box: BoundingBox3D, tf: TransformStamped) -> BoundingBox3D:
-    center = do_transform_pose(box.center, tf)
-    box_tf = BoundingBox3D(center=center, size=box.size)
+    center_tf = do_transform_pose(box.center, tf)
+    box_tf = BoundingBox3D(center=center_tf, size=box.size)
     return box_tf
 
 
@@ -105,11 +106,12 @@ def do_transform_boxtrack(
     p_tf = Bridge.ndarray_to_list(
         do_transform_boxtrack_covariance(Bridge.list_to_2d_ndarray(track.p), tf)
     )
-    velocity = do_transform_vector3(Vector3Stamped(vector=track.velocity), tf).vector
+    box_tf = do_transform_box(track.box, tf)
+    v_tf = do_transform_vector3(Vector3Stamped(vector=track.velocity), tf).vector
     track_tf = BoxTrack(
         obj_type=track.obj_type,
-        box=do_transform_box(track.box, tf),
-        velocity=velocity,
+        box=box_tf,
+        velocity=v_tf,
         p=p_tf,
         n_updates=track.n_updates,
         age=track.age,

@@ -12,20 +12,26 @@ from avstack.geometry import (
     Attitude,
     Box3D,
     GlobalOrigin3D,
+    PassiveReferenceFrame,
     Position,
     ReferenceFrame,
     Velocity,
     q_stan_to_cam,
+    transform_orientation,
 )
 
 
 # -- calibration data
-ref_lidar = ReferenceFrame(
-    x=np.array([0, 0, 1.73]), q=np.quaternion(1), reference=GlobalOrigin3D
-)
+
+# ref_lidar = ReferenceFrame(
+#     x=np.array([0, 0, 1.73]), q=np.quaternion(1), reference=GlobalOrigin3D
+# )
 ref_camera = ReferenceFrame(
     x=np.array([0.27, 0.06, 1.65]), q=q_stan_to_cam, reference=GlobalOrigin3D
 )
+ref_world = PassiveReferenceFrame(frame_id="world", timestamp=0.0)
+ref_agent = PassiveReferenceFrame(frame_id="agent", timestamp=0.0)
+
 P_cam = np.array(
     [
         [7.215377000000e02, 0.000000000000e00, 6.095593000000e02, 4.485728000000e01],
@@ -36,9 +42,9 @@ P_cam = np.array(
 
 img_shape = (375, 1242, 3)
 camera_calib = CameraCalibration(ref_camera, P_cam, img_shape)
-box_calib = Calibration(ref_camera)
-lidar_calib = LidarCalibration(ref_lidar)
-radar_calib = RadarCalibration(ref_lidar, fov_horizontal=np.pi, fov_vertical=np.pi / 2)
+box_calib = Calibration(ref_agent)
+lidar_calib = LidarCalibration(ref_agent)
+radar_calib = RadarCalibration(ref_agent, fov_horizontal=np.pi, fov_vertical=np.pi / 2)
 
 
 def get_object_global(seed, reference=GlobalOrigin3D):
@@ -52,3 +58,11 @@ def get_object_global(seed, reference=GlobalOrigin3D):
     obj = VehicleState("car")
     obj.set(0, pos_obj, box_obj, vel_obj, acc_obj, rot_obj, ang_obj)
     return obj
+
+
+def get_boxtrack_3d(seed, reference=GlobalOrigin3D):
+    pass
+
+
+def random_quat():
+    return transform_orientation(np.random.rand(3), "euler", "quat")

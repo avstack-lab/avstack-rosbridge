@@ -1,5 +1,5 @@
 import numpy as np
-from avstack.geometry import PassiveReferenceFrame, ReferenceFrame
+from avstack.geometry import GlobalOrigin3D, PassiveReferenceFrame, ReferenceFrame
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Quaternion, Transform, TransformStamped, Vector3
 from std_msgs.msg import Header
@@ -72,3 +72,31 @@ class Bridge:
         translation = Vector3(x=x[0], y=x[1], z=x[2])
         rotation = Quaternion(x=q.x, y=q.y, z=q.z, w=q.w)
         return Transform(translation=translation, rotation=rotation)
+
+    @staticmethod
+    def tf2_to_reference(tf: TransformStamped) -> ReferenceFrame:
+        # **conjugate quaternion for tf2**
+        if tf.header.frame_id == "world":
+            reference = GlobalOrigin3D
+        else:
+            raise NotImplementedError(tf.header.frame_id)
+        x = np.array(
+            [
+                tf.transform.translation.x,
+                tf.transform.translation.y,
+                tf.transform.translation.z,
+            ]
+        )
+        q = np.quaternion(
+            tf.transform.rotation.w,
+            tf.transform.rotation.x,
+            tf.transform.rotation.y,
+            tf.transform.rotation.z,
+        )
+        return ReferenceFrame(
+            x=x,
+            q=q.conjugate(),
+            reference=reference,
+            to_frame=tf.child_frame_id,
+            from_frame=tf.header.frame_id,
+        )

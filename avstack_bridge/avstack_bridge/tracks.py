@@ -49,9 +49,8 @@ class TrackBridge:
             ),
             P=Bridge.list_to_2d_ndarray(trk_msg.p),
             t=Bridge.rostime_to_time(header.stamp),
-            coast=trk_msg.coast,
+            dt_coast=trk_msg.dt_coast,
             n_updates=trk_msg.n_updates,
-            age=trk_msg.age,
         )
 
     @staticmethod
@@ -64,8 +63,7 @@ class TrackBridge:
             velocity=vel,
             p=Bridge.ndarray_to_list(track.P),
             n_updates=track.n_updates,
-            age=track.age,
-            coast=float(track.coast),
+            dt_coast=float(track.dt_coast),
             identifier=track.ID,
         )
 
@@ -89,7 +87,8 @@ class TrackBridge:
                     header=header,
                     tracks=[cls.avstack_to_boxtrack(trk) for trk in tracks],
                 )
-            except AttributeError:
+            except AttributeError as e:
+                raise e
                 trks_msg = ObjectStateBridge.avstack_to_objecstatearray(
                     obj_states=[trk.as_object() for trk in tracks],
                     header=header,

@@ -19,6 +19,7 @@ python = "~3.10"
 #lib-avstack-api = {path="./submodules/lib-avstack-api", develop=true}
 avstack_bridge = {path="./avstack_bridge/", develop=true}
 opencv-python = "=4.5.5.64"
+ros2_numpy = "=0.0.2"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7"

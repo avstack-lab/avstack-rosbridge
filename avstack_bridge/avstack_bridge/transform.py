@@ -114,8 +114,7 @@ def do_transform_boxtrack(
         velocity=v_tf,
         p=p_tf,
         n_updates=track.n_updates,
-        age=track.age,
-        coast=track.coast,
+        dt_coast=track.dt_coast,
         identifier=track.identifier,
     )
 

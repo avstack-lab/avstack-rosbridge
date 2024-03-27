@@ -1,5 +1,6 @@
 from typing import List, Union
 
+from avstack.datastructs import DataContainer
 from avstack.environment.objects import ObjectState as ObjectStateAV
 from geometry_msgs.msg import Pose, Twist, Vector3
 from std_msgs.msg import Header
@@ -70,6 +71,13 @@ class ObjectStateBridge:
                 msg_obj=msg_obj,
             )
             obj_states.append(obj_state)
+        timestamp = Bridge.rostime_to_time(header.stamp)
+        obj_states = DataContainer(
+            frame=0,
+            timestamp=timestamp,
+            data=obj_states,
+            source_identifier=header.frame_id,
+        )
         return obj_states
 
     ##########################################

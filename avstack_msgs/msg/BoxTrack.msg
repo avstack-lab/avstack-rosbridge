@@ -11,8 +11,6 @@ float64[81] p  # state vector covariance
 
 uint32 n_updates 0
 
-uint32 age 0
-
-float64 coast 0.0
+float64 dt_coast 0.0
 
 uint32 identifier 0

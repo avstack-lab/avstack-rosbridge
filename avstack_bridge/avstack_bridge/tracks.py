@@ -1,10 +1,13 @@
 from typing import Union
 
 from avstack.datastructs import DataContainer
+from avstack.environment.objects import ObjectState
 from avstack.modules.tracking.tracks import BasicBoxTrack3D
 from std_msgs.msg import Header
 
 from avstack_msgs.msg import BoxTrack, BoxTrackArray, BoxTrackStamped, ObjectStateArray
+
+import numpy as np
 
 from .base import Bridge
 from .geometry import GeometryBridge
@@ -57,15 +60,28 @@ class TrackBridge:
     def avstack_to_boxtrack(track: BasicBoxTrack3D) -> BoxTrack:
         box = GeometryBridge.avstack_to_box3d(box=track.box3d, stamped=False)
         vel = GeometryBridge.avstack_to_velocity(velocity=track.velocity, stamped=False)
-        return BoxTrack(
-            obj_type=track.obj_type if track.obj_type else "",
-            box=box,
-            velocity=vel,
-            p=Bridge.ndarray_to_list(track.P),
-            n_updates=track.n_updates,
-            dt_coast=float(track.dt_coast),
-            identifier=track.ID,
-        )
+        if isinstance(track, BasicBoxTrack3D):
+            return BoxTrack(
+                obj_type=track.obj_type if track.obj_type else "",
+                box=box,
+                velocity=vel,
+                p=Bridge.ndarray_to_list(track.P),
+                n_updates=track.n_updates,
+                dt_coast=float(track.dt_coast),
+                identifier=track.ID,
+            )
+        elif isinstance(track, ObjectState):
+            return BoxTrack(
+                obj_type=track.obj_type if track.obj_type else "",
+                box=box,
+                velocity=vel,
+                p=Bridge.ndarray_to_list(np.eye(9)),
+                n_updates=0,
+                dt_coast=0.0,
+                identifier=track.ID,
+            )
+        else:
+            raise NotImplementedError(type(track))
 
     @classmethod
     def avstack_to_boxtrack_stamped(
@@ -77,23 +93,16 @@ class TrackBridge:
 
     @classmethod
     def avstack_to_tracks(
-        cls, tracks: DataContainer, header=None, default_type=ObjectStateArray
+        cls, tracks: DataContainer, header=None, default_type=BoxTrackArray
     ) -> Union[ObjectStateArray, BoxTrackArray]:
         if len(tracks) > 0:
             if not header:
                 header = Bridge.reference_to_header(tracks.reference)
-            try:
-                trks_msg = BoxTrackArray(
-                    header=header,
-                    tracks=[cls.avstack_to_boxtrack(trk) for trk in tracks],
-                )
-            except AttributeError as e:
-                raise e
-                trks_msg = ObjectStateBridge.avstack_to_objecstatearray(
-                    obj_states=[trk.as_object() for trk in tracks],
-                    header=header,
-                )
+            trks_msg = BoxTrackArray(
+                header=header,
+                tracks=[cls.avstack_to_boxtrack(trk) for trk in tracks],
+            )
         else:
-            trks_msg = default_type(header=header)
+            trks_msg = default_type(header=header, tracks=[])
 
         return trks_msg

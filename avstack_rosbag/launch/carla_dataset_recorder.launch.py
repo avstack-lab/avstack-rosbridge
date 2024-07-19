@@ -11,15 +11,15 @@ def generate_launch_description():
     replayer_config = os.path.join(
         get_package_share_directory("avstack_rosbag"),
         "config",
-        "carla_dataset_replayer.yaml",
+        "carla_dataset_recorder.yaml",
     )
 
     return LaunchDescription(
         [
             Node(
                 package="avstack_rosbag",
-                executable="carla_dataset_replayer",
-                name="replayer",
+                executable="carla_dataset_recorder",
+                name="recorder",
                 parameters=[replayer_config],
                 arguments=["--ros-args", "--log-level", "INFO"],
                 on_exit=Shutdown(),

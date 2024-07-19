@@ -25,8 +25,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "carla_dataset_replayer = avstack_rosbag.carla.carla_dataset_replayer:main"
-            "carla_dataset_recorder = avstack_rosbag.carla.carla_dataset_recorder:main"
+            "carla_dataset_replayer = avstack_rosbag.carla.carla_dataset_replayer:main",
+            "carla_dataset_recorder = avstack_rosbag.carla.carla_dataset_recorder:main",
         ],
     },
 )

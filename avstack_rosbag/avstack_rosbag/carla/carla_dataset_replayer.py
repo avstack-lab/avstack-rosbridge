@@ -2,7 +2,7 @@ import json
 import os
 
 import rclpy
-from avstack_msgs.msg import ObjectStateArray
+from avstack_msgs.msg import AgentArray, ObjectStateArray
 from rclpy.node import Node
 from sensor_msgs.msg import Image as ImageMsg
 from sensor_msgs.msg import PointCloud2 as LidarMsg
@@ -26,7 +26,6 @@ class CarlaDatasetReplayer(Node):
         self.declare_parameter("scene_idx", 0)
         self.declare_parameter("i_frame_start", 4)
         self.declare_parameter("max_frames", 200)
-        self.declare_parameter(name="output_folder", value="outputs")
         self.index = 0
 
         # set things based on params
@@ -39,6 +38,9 @@ class CarlaDatasetReplayer(Node):
 
         # all the publishers
         self.tf_broadcaster = TransformBroadcaster(self)
+        self.publisher_agent_names = self.create_publisher(
+            AgentArray, "active_agents", 10
+        )
         self.publisher_object_gt = self.create_publisher(
             ObjectStateArray, "object_truth", 10
         )
@@ -49,27 +51,18 @@ class CarlaDatasetReplayer(Node):
         timer_period = 1.0 / rt_framerate
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
-        # log metadata
-        self.output_folder = os.path.join(
-            self.get_parameter("output_folder").value, "simulator"
-        )
-        os.makedirs(self.output_folder, exist_ok=False)
-        metadata = {
-            "scene_idx": self.get_parameter("scene_idx").value,
-            "i_frame_start": self.get_parameter("i_frame_start").value,
-            "dataset_path": self.get_parameter("dataset_path").value,
-        }
-        with open(os.path.join(self.output_folder, "metadata.json"), "w") as f:
-            json.dump(metadata, f)
-
     def timer_callback(self):
         (
+            agent_names,
             obj_state_array,
             agent_poses,
             agent_data,
             agent_objects,
             i_frame,
         ) = self.loader.load_next()
+
+        # publish the names of active agents
+        self.publisher_agent_names.publish(agent_names)
 
         # publish object ground truth object states
         self.publisher_object_gt.publish(obj_state_array)
@@ -100,19 +93,17 @@ class CarlaDatasetReplayer(Node):
                         agent_data[agent][sensor]
                     )
 
-        # publish object information in gent view
+        # publish object information in agent view
         for agent in agent_objects:
             if agent not in self.publisher_agent_object_gt:
                 self.publisher_agent_object_gt[agent] = self.create_publisher(
-                    ObjectStateArray, f"{agent}/gt_objects", 10
+                    ObjectStateArray, f"{agent}/object_truth", 10
                 )
             if agent_objects[agent] is not None:
                 if agent_objects[agent]:
                     self.publisher_agent_object_gt[agent].publish(agent_objects[agent])
 
         # save index-to-frame map
-        with open(os.path.join(self.output_folder, "idx_to_frame_map.txt"), "a") as f:
-            f.write("{} {}\n".format(self.index, i_frame))
         self.index += 1
         if self.index >= self.get_parameter("max_frames").value:
             raise SystemExit

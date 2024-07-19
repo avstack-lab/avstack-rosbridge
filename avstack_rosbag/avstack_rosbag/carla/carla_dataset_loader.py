@@ -3,7 +3,9 @@ from avstack.geometry import PassiveReferenceFrame
 from avstack_bridge.base import Bridge
 from avstack_bridge.objects import ObjectStateBridge
 from avstack_bridge.sensors import CameraSensorBridge, LidarSensorBridge
-from avstack_msgs.msg import ObjectStateArray
+
+from std_msgs.msg import String
+from avstack_msgs.msg import AgentArray, ObjectStateArray
 
 
 class CarlaDatasetLoader:
@@ -17,6 +19,7 @@ class CarlaDatasetLoader:
             data_dir=dataset_path
         ).get_scene_dataset_by_index(scene_idx=scene_idx)
         self.i_frame = i_frame_start - 1  # start after initialization
+        self.agent_names = []
 
     def load_next(self) -> ObjectStateArray:
         """Loads the next set of data from the dataset
@@ -59,6 +62,7 @@ class CarlaDatasetLoader:
             agent_objects = {}
             if self.i_frame in self.scene_dataset.frames:
                 agents = self.scene_dataset.get_agents(self.i_frame)
+                self.agent_names = [f"agent{agent.ID}" for agent in agents]
                 for agent in agents:
                     if agent.ID is None:
                         raise RuntimeError("Agent must have an ID")
@@ -124,5 +128,8 @@ class CarlaDatasetLoader:
                             sensor = sensor.replace("-", "")
                             data[sensor] = sensor_data
                     agent_data[agent_name] = data
-
-        return objs_msgs, agent_poses, agent_data, agent_objects, self.i_frame
+            agent_names = AgentArray(
+                header=obj_header,
+                agents=[String(data=agent) for agent in self.agent_names],
+            )
+        return agent_names, objs_msgs, agent_poses, agent_data, agent_objects, self.i_frame

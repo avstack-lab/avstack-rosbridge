@@ -96,9 +96,10 @@ class CarlaDatasetRecorder(Node):
             )
         
             # TOPIC: agent sensor data
+            # HACK: only consider primaries for now
             sensor_msgs = [
-                ("camera", "sensor_msgs/msg/Image", ImageMsg),
-                ("lidar", "sensor_msgs/msg/PointCloud2", LidarMsg)
+                ("camera0", "sensor_msgs/msg/Image", ImageMsg),
+                ("lidar0", "sensor_msgs/msg/PointCloud2", LidarMsg)
             ]
             for sensor, msg_name, msg_type in sensor_msgs:
                 self.create_rosbag_and_subscription(

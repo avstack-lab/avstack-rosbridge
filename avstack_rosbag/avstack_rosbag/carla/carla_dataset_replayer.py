@@ -28,6 +28,9 @@ class CarlaDatasetReplayer(Node):
         self.declare_parameter("max_frames", 200)
         self.index = 0
 
+        # log start info
+        self.get_logger().info(f"Replaying dataset {self.get_parameter('dataset_path').value}")
+
         # set things based on params
         rt_framerate = self.get_parameter("real_time_framerate").value
         self.loader = CarlaDatasetLoader(
@@ -58,7 +61,7 @@ class CarlaDatasetReplayer(Node):
             agent_poses,
             agent_data,
             agent_objects,
-            i_frame,
+            frame,
         ) = self.loader.load_next()
 
         # publish the names of active agents
@@ -77,6 +80,7 @@ class CarlaDatasetReplayer(Node):
             if agent not in self.publisher_agent_data:
                 self.publisher_agent_data[agent] = {}
             for sensor in agent_data[agent]:
+                # create publisher if it doesn't exist
                 if sensor not in self.publisher_agent_data[agent]:
                     if "camera" in sensor:
                         msg_type = ImageMsg

@@ -1,10 +1,10 @@
 from avapi.carla.dataset import CarlaScenesManager
 from avstack.geometry import PassiveReferenceFrame
+from std_msgs.msg import String
+
 from avstack_bridge.base import Bridge
 from avstack_bridge.objects import ObjectStateBridge
 from avstack_bridge.sensors import CameraSensorBridge, LidarSensorBridge
-
-from std_msgs.msg import String
 from avstack_msgs.msg import AgentArray, ObjectStateArray
 
 
@@ -73,7 +73,9 @@ class CarlaDatasetLoader:
             # agent sensor data
             data = {}
             for sensor in self.scene_dataset.sensor_IDs[agent.ID]:
-                if frame in self.scene_dataset.get_frames(sensor=sensor, agent=agent.ID):
+                if frame in self.scene_dataset.get_frames(
+                    sensor=sensor, agent=agent.ID
+                ):
                     sensor_ref = PassiveReferenceFrame(
                         frame_id=sensor,
                         timestamp=timestamp,
@@ -125,6 +127,5 @@ class CarlaDatasetLoader:
                     agent_objs,
                     header=agent_obj_header,
                 )
-
 
         return agent_names_msg, objs_msgs, agent_poses, agent_data, agent_objects, frame

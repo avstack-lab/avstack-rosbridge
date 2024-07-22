@@ -14,7 +14,6 @@ from avstack.geometry import (
     GlobalOrigin3D,
     PassiveReferenceFrame,
     Position,
-    ReferenceFrame,
     Velocity,
     q_stan_to_cam,
     transform_orientation,
@@ -26,11 +25,13 @@ from avstack.geometry import (
 # ref_lidar = ReferenceFrame(
 #     x=np.array([0, 0, 1.73]), q=np.quaternion(1), reference=GlobalOrigin3D
 # )
-ref_camera = ReferenceFrame(
-    x=np.array([0.27, 0.06, 1.65]), q=q_stan_to_cam, reference=GlobalOrigin3D
-)
+# ref_camera = ReferenceFrame(
+#     x=np.array([0.27, 0.06, 1.65]), q=q_stan_to_cam, reference=GlobalOrigin3D
+# )
 ref_world = PassiveReferenceFrame(frame_id="world", timestamp=0.0)
 ref_agent = PassiveReferenceFrame(frame_id="agent", timestamp=0.0)
+ref_camera = PassiveReferenceFrame(frame_id="camera", timestamp=0.0)
+ref_lidar = PassiveReferenceFrame(frame_id="lidar", timestamp=0.0)
 
 P_cam = np.array(
     [
@@ -43,7 +44,7 @@ P_cam = np.array(
 img_shape = (375, 1242, 3)
 camera_calib = CameraCalibration(ref_camera, P_cam, img_shape)
 box_calib = Calibration(ref_agent)
-lidar_calib = LidarCalibration(ref_agent)
+lidar_calib = LidarCalibration(ref_lidar)
 radar_calib = RadarCalibration(ref_agent, fov_horizontal=np.pi, fov_vertical=np.pi / 2)
 
 

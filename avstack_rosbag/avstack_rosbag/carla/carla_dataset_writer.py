@@ -2,11 +2,9 @@ import os
 
 import rclpy
 import rosbag2_py
-
 from rclpy.node import Node
 from rclpy.serialization import serialize_message
 from rclpy.time import Time
-
 from tf2_msgs.msg import TFMessage
 
 from .carla_dataset_loader import CarlaDatasetLoader
@@ -17,7 +15,9 @@ class CarlaDatasetWriter(Node):
         super().__init__("carla_dataset_replayer")
 
         # parameters
-        self.declare_parameter("output_folder", "/data/shared/CARLA/rosbags/carla_dataset")
+        self.declare_parameter(
+            "output_folder", "/data/shared/CARLA/rosbags/carla_dataset"
+        )
         self.declare_parameter("real_time_framerate", 10.0)
         self.declare_parameter("dataset_path", "/data/shared/CARLA/multi-agent-v1")
         self.declare_parameter("scene_idx", 0)
@@ -25,9 +25,9 @@ class CarlaDatasetWriter(Node):
         self.declare_parameter("max_frames", 200)
 
         # log start info
-        dp = self.get_parameter('dataset_path').value
-        fm = self.get_parameter('max_frames').value
-        fr = self.get_parameter('real_time_framerate').value
+        dp = self.get_parameter("dataset_path").value
+        fm = self.get_parameter("max_frames").value
+        fr = self.get_parameter("real_time_framerate").value
         self.get_logger().info(f"Replaying dataset {dp} for max {fm} frames at {fr} Hz")
 
         # dataset replay options
@@ -44,9 +44,9 @@ class CarlaDatasetWriter(Node):
         self.writer = rosbag2_py.SequentialWriter()
         bag_path = os.path.join(self.get_parameter("output_folder").value)
         storage_options = rosbag2_py._storage.StorageOptions(
-            uri=bag_path,
-            storage_id='sqlite3')
-        converter_options = rosbag2_py._storage.ConverterOptions('', '')
+            uri=bag_path, storage_id="sqlite3"
+        )
+        converter_options = rosbag2_py._storage.ConverterOptions("", "")
         self.writer.open(storage_options, converter_options)
 
         # TOPIC: transforms
@@ -71,7 +71,9 @@ class CarlaDatasetWriter(Node):
         self.topic_agent_object_gt = {}
         self.topic_agent_data = {}
 
-    def create_topic(self, topic_name: str, topic_type: str, serialization_format: str = 'cdr'):
+    def create_topic(
+        self, topic_name: str, topic_type: str, serialization_format: str = "cdr"
+    ):
         """
         Create a new topic.
 
@@ -82,8 +84,9 @@ class CarlaDatasetWriter(Node):
         :return:
         """
         topic_name = topic_name
-        topic = rosbag2_py.TopicMetadata(name=topic_name, type=topic_type,
-                                        serialization_format=serialization_format)
+        topic = rosbag2_py.TopicMetadata(
+            name=topic_name, type=topic_type, serialization_format=serialization_format
+        )
         self.writer.create_topic(topic)
 
     def write(self, topic, msg):
@@ -142,7 +145,9 @@ class CarlaDatasetWriter(Node):
         # publish object information in agent view
         for agent in agent_objects:
             if agent not in self.topic_agent_object_gt:
-                self.create_topic(f"{agent}/object_truth", "avstack_msgs/msg/ObjectStateArray")
+                self.create_topic(
+                    f"{agent}/object_truth", "avstack_msgs/msg/ObjectStateArray"
+                )
             if agent_objects[agent] is not None:
                 if agent_objects[agent]:
                     self.write(f"{agent}/object_truth", agent_objects[agent])

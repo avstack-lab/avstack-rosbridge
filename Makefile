@@ -1,7 +1,7 @@
-NAME := avstack_bridge
-TESTS := avstack_bridge/tests
+NAME := avstack_rosbridge
 INSTALL_STAMP := .install.stamp
 POETRY := $(shell command -v poetry 2> /dev/null)
+PYFOLDERS := avstack_bridge avstack_msgs avstack_rosbag
 .DEFAULT_GOAL := help
 
 .PHONY: help
@@ -29,18 +29,18 @@ clean:
 
 .PHONY: lint
 lint: $(INSTALL_STAMP)
-		$(POETRY) run isort --profile=black --lines-after-imports=2 --check-only $(TESTS) $(NAME)
-		$(POETRY) run black --check $(TESTS) $(NAME) --diff
-		$(POETRY) run flake8 --ignore=W503,E501 $(TESTS) $(NAME)
-		$(POETRY) run mypy $(TESTS) $(NAME) --ignore-missing-imports
+		$(POETRY) run isort --profile=black --lines-after-imports=2 --check-only $(PYFOLDERS)
+		$(POETRY) run black --check $(PYFOLDERS)  --diff
+		$(POETRY) run flake8 --ignore=W503,E501 $(PYFOLDERS) 
+		$(POETRY) run mypy $(PYFOLDERS)  --ignore-missing-imports
 		$(POETRY) run bandit -r $(NAME) -s B608
 
 .PHONY: format
 format: $(INSTALL_STAMP)
-		$(POETRY) run autoflake --remove-all-unused-imports -i -r $(TESTS) $(NAME) --exclude=__init__.py 
-		$(POETRY) run isort --profile=black --lines-after-imports=2 $(TESTS) $(NAME)
-		$(POETRY) run black $(TESTS) $(NAME)
+		$(POETRY) run autoflake --remove-all-unused-imports -i -r $(PYFOLDERS) --exclude=__init__.py 
+		$(POETRY) run isort --profile=black --lines-after-imports=2 $(PYFOLDERS) 
+		$(POETRY) run black $(PYFOLDERS) 
 
 .PHONY: test
 test: $(INSTALL_STAMP)
-		$(POETRY) run pytest $(TESTS) --cov-report term-missing --cov-fail-under 0 --cov $(NAME)
+		$(POETRY) run pytest ./tests/ --cov-report term-missing --cov-fail-under 0 --cov $(NAME)

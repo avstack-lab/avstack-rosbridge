@@ -1,6 +1,7 @@
 import numpy as np
 import ros2_numpy
 from avstack import sensors
+from avstack.calibration import CameraCalibration, LidarCalibration
 from avstack.geometry import PointMatrix3D
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image as ImageMsg
@@ -14,11 +15,12 @@ cv_bridge = CvBridge()
 
 class CameraSensorBridge:
     @staticmethod
-    def imgmsg_to_avstack(msg: ImageMsg) -> sensors.ImageData:
-        frame = None
+    def imgmsg_to_avstack(
+        msg: ImageMsg, calibration: CameraCalibration
+    ) -> sensors.ImageData:
+        frame = 0
         ros_frame = msg.header.frame_id
         timestamp = Bridge.rostime_to_time(msg.header.stamp)
-
         img_data = sensors.ImageData(
             frame=frame,
             timestamp=timestamp,
@@ -40,8 +42,10 @@ class CameraSensorBridge:
 
 class LidarSensorBridge:
     @staticmethod
-    def pc2_to_avstack(msg: LidarMsg) -> sensors.LidarData:
-        frame = None
+    def pc2_to_avstack(
+        msg: LidarMsg, calibration: LidarCalibration
+    ) -> sensors.LidarData:
+        frame = 0
         ros_frame = msg.header.frame_id
         timestamp = Bridge.rostime_to_time(msg.header.stamp)
         data = PointMatrix3D(ros2_numpy.numpify(msg), calibration)

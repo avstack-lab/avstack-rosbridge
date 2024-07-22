@@ -1,13 +1,12 @@
 from typing import Union
 
+import numpy as np
 from avstack.datastructs import DataContainer
 from avstack.environment.objects import ObjectState
 from avstack.modules.tracking.tracks import BasicBoxTrack3D
 from std_msgs.msg import Header
 
 from avstack_msgs.msg import BoxTrack, BoxTrackArray, BoxTrackStamped, ObjectStateArray
-
-import numpy as np
 
 from .base import Bridge
 from .geometry import GeometryBridge

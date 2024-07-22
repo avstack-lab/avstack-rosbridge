@@ -1,6 +1,6 @@
-/replayer:
+/writer:
   ros__parameters:
-    real_time_framerate: 10
+    real_time_framerate: 100.0
     dataset_path: "/data/shared/CARLA/multi-agent-trust"
     scene_idx: 0
-    max_frames: 800
+    max_frames: 1000

@@ -95,8 +95,6 @@ class TrackBridge:
         cls, tracks: DataContainer, header=None, default_type=BoxTrackArray
     ) -> Union[ObjectStateArray, BoxTrackArray]:
         if len(tracks) > 0:
-            if not header:
-                header = Bridge.reference_to_header(tracks.reference)
             trks_msg = BoxTrackArray(
                 header=header,
                 tracks=[cls.avstack_to_boxtrack(trk) for trk in tracks],

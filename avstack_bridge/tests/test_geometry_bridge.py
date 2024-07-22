@@ -1,6 +1,7 @@
 import numpy as np
 import quaternion  # noqa # pylint: disable=unused-import
-from avstack.geometry import Attitude, GlobalOrigin3D, Position
+from avstack.geometry import Attitude, GlobalOrigin3D, Polygon, Position
+from geometry_msgs.msg import PolygonStamped as RosPolygonStamped
 from utilities import random_quat
 
 from avstack_bridge.geometry import GeometryBridge
@@ -19,3 +20,19 @@ def test_pose_bridge():
 
     assert position.allclose(position_2)
     assert attitude.allclose(attitude_2)
+
+
+def test_polygon_bridge():
+    # avstack --> ros
+    poly = Polygon(
+        boundary=np.random.rand(10, 2), reference=GlobalOrigin3D.as_passive_frame()
+    )
+    poly_ros = GeometryBridge.avstack_to_polygon(poly, stamped=True)
+    assert isinstance(poly_ros, RosPolygonStamped)
+
+    # ros --> avstack
+    poly_2 = GeometryBridge.polygon_to_avstack(poly_ros, header=None)
+    assert isinstance(poly_2, Polygon)
+
+    # check consistency
+    assert np.allclose(poly.boundary, poly_2.boundary)

@@ -16,11 +16,14 @@ cv_bridge = CvBridge()
 class CameraSensorBridge:
     @staticmethod
     def imgmsg_to_avstack(
-        msg: ImageMsg, calibration: CameraCalibration
+        msg: ImageMsg, calibration: CameraCalibration = None
     ) -> sensors.ImageData:
         frame = 0
         ros_frame = msg.header.frame_id
         timestamp = Bridge.rostime_to_time(msg.header.stamp)
+        if calibration is None:
+            reference = Bridge.header_to_reference(msg.header)
+            calibration = CameraCalibration(reference=reference, P=None, img_shape=None)
         img_data = sensors.ImageData(
             frame=frame,
             timestamp=timestamp,
@@ -43,12 +46,17 @@ class CameraSensorBridge:
 class LidarSensorBridge:
     @staticmethod
     def pc2_to_avstack(
-        msg: LidarMsg, calibration: LidarCalibration
+        msg: LidarMsg, calibration: LidarCalibration = None
     ) -> sensors.LidarData:
         frame = 0
         ros_frame = msg.header.frame_id
         timestamp = Bridge.rostime_to_time(msg.header.stamp)
-        data = PointMatrix3D(ros2_numpy.numpify(msg), calibration)
+        if calibration is None:
+            reference = Bridge.header_to_reference(msg.header)
+            calibration = LidarCalibration(reference=reference)
+        x = ros2_numpy.numpify(msg)
+        x = np.vstack(x[col].astype(float) for col in ["x", "y", "z", "intensity"])
+        data = PointMatrix3D(x, calibration)
         pc_data = sensors.LidarData(
             frame=frame,
             timestamp=timestamp,
@@ -65,11 +73,17 @@ class LidarSensorBridge:
             header = Bridge.reference_to_header(pc_data.reference)
         data = np.zeros(
             pc_data.data.shape[0],
-            dtype=[("x", np.float32), ("y", np.float32), ("z", np.float32)],
+            dtype=[
+                ("x", np.float32),
+                ("y", np.float32),
+                ("z", np.float32),
+                ("intensity", np.float32),
+            ],
         )
         data["x"] = pc_data.data.x[:, 0]
         data["y"] = pc_data.data.x[:, 1]
         data["z"] = pc_data.data.x[:, 2]
+        data["intensity"] = pc_data.data.x[:, 3]
         pcmsg = ros2_numpy.msgify(LidarMsg, data)
         pcmsg.header = header
         return pcmsg

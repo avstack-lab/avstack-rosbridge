@@ -49,6 +49,7 @@ class CarlaDatasetLoader:
         # HACK: ensure that timestamp is correct
         objs_msgs.header.stamp = Bridge.time_to_rostime(timestamp)
 
+        sensor_poses = {}
         agent_poses = {}
         agent_data = {}
         agent_objects = {}
@@ -76,34 +77,41 @@ class CarlaDatasetLoader:
                 if frame in self.scene_dataset.get_frames(
                     sensor=sensor, agent=agent.ID
                 ):
+                    sensor_name = sensor.replace("-", "")
+                    sensor_frame = f"{agent_name}_{sensor_name}"
                     sensor_ref = PassiveReferenceFrame(
-                        frame_id=sensor,
+                        frame_id=sensor_frame,
                         timestamp=timestamp,
                     )
                     sensor_header = Bridge.reference_to_header(sensor_ref)
                     if "camera" in sensor:
-                        img = self.scene_dataset.get_image(
+                        raw_data = self.scene_dataset.get_image(
                             frame=frame,
                             sensor=sensor,
                             agent=agent.ID,
                         )
                         sensor_data = CameraSensorBridge.avstack_to_imgmsg(
-                            img, header=sensor_header
+                            raw_data, header=sensor_header
                         )
                     elif "lidar" in sensor:
-                        pc = self.scene_dataset.get_lidar(
+                        raw_data = self.scene_dataset.get_lidar(
                             frame=frame,
                             sensor=sensor,
                             agent=agent.ID,
                         )
                         sensor_data = LidarSensorBridge.avstack_to_pc2(
-                            pc, header=sensor_header
+                            raw_data, header=sensor_header
                         )
                     else:
                         sensor_data = None
                     if sensor_data is not None:
-                        sensor = sensor.replace("-", "")
-                        data[sensor] = sensor_data
+                        data[sensor_frame] = sensor_data
+                        raw_data.reference.from_frame = agent_name
+                        raw_data.reference.to_frame = sensor_frame
+                        raw_data.reference.timestamp = timestamp
+                        sensor_poses[sensor_frame] = Bridge.reference_to_tf2_stamped(
+                            raw_data.reference
+                        )
             agent_data[agent_name] = data
 
             # object states in agent view
@@ -128,4 +136,12 @@ class CarlaDatasetLoader:
                     header=agent_obj_header,
                 )
 
-        return agent_names_msg, objs_msgs, agent_poses, agent_data, agent_objects, frame
+        return (
+            agent_names_msg,
+            objs_msgs,
+            agent_poses,
+            sensor_poses,
+            agent_data,
+            agent_objects,
+            frame,
+        )

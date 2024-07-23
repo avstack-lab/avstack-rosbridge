@@ -108,6 +108,7 @@ class CarlaDatasetWriter(Node):
             agent_names,
             obj_state_array,
             agent_poses,
+            sensor_poses,
             agent_data,
             agent_objects,
             frame,
@@ -119,8 +120,10 @@ class CarlaDatasetWriter(Node):
         # publish object ground truth object states
         self.write("object_truth", obj_state_array)
 
-        # publish agent pose information
-        agent_poses_tf = TFMessage(transforms=list(agent_poses.values()))
+        # publish agent and sensor pose information
+        transforms = list(agent_poses.values()) + list(sensor_poses.values())
+        # self.get_logger().info(",".join([str(Bridge.rostime_to_time(tf.header.stamp)) for tf in transforms]))
+        agent_poses_tf = TFMessage(transforms=transforms)
         self.write("tf", agent_poses_tf)
 
         # publish agent sensor data

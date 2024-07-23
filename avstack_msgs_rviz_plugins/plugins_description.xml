@@ -1,0 +1,26 @@
+<library path="avstack_msgs_rviz_plugins">
+
+    <!-- Displays plugins -->
+  
+    <class
+      name="avstack_msgs_rviz_plugins/ObjectState"
+      type="rviz_plugins::ObjectStateDisplay"
+      base_class_type="rviz_common::Display"
+    >
+      <description>
+        Display ObjectState via markers or edges
+      </description>
+      <message_type>avstack_msgs::msg::ObjectState</message_type>
+    </class>
+    <class
+      name="avstack_msgs_rviz_plugins/ObjectStateArray"
+      type="rviz_plugins::ObjectStateArrayDisplay"
+      base_class_type="rviz_common::Display"
+    >
+      <description>
+        Display ObjectState Array via markers or edges
+      </description>
+      <message_type>avstack_msgs::msg::ObjectStateArray</message_type>
+    </class>
+  
+  </library>

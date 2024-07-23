@@ -55,7 +55,7 @@ class LidarSensorBridge:
             reference = Bridge.header_to_reference(msg.header)
             calibration = LidarCalibration(reference=reference)
         x = ros2_numpy.numpify(msg)
-        x = np.vstack(x[col].astype(float) for col in ["x", "y", "z", "intensity"])
+        x = np.vstack([x[col].astype(float) for col in ["x", "y", "z", "intensity"]])
         data = PointMatrix3D(x, calibration)
         pc_data = sensors.LidarData(
             frame=frame,

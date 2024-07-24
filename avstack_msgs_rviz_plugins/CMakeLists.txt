@@ -39,6 +39,8 @@ set(CMAKE_AUTOMOC ON)
 
 
 set(avstack_msgs_rviz_plugins_headers_to_moc
+  include/avstack_msgs_rviz_plugins/box_track.hpp
+  include/avstack_msgs_rviz_plugins/box_track_array.hpp  
   include/avstack_msgs_rviz_plugins/object_state.hpp
   include/avstack_msgs_rviz_plugins/object_state_array.hpp
 )
@@ -51,6 +53,8 @@ endforeach()
 ## Here we specify the list of source files.
 ## The generated MOC files are included automatically as headers.
 set(avstack_msgs_rviz_plugins_source_files
+  src/box_track.cpp
+  src/box_track_array.cpp
   src/object_state.cpp
   src/object_state_array.cpp
 )
@@ -130,6 +134,8 @@ install(
 
 # Install Python executables
 install(PROGRAMS
+  samples/BoxTrack.py
+  samples/BoxTrackArray.py
   samples/ObjectState.py
   samples/ObjectStateArray.py
   DESTINATION lib/${PROJECT_NAME}

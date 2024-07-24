@@ -78,7 +78,7 @@ class CarlaDatasetLoader:
                     sensor=sensor, agent=agent.ID
                 ):
                     sensor_name = sensor.replace("-", "")
-                    sensor_frame = f"{agent_name}_{sensor_name}"
+                    sensor_frame = f"{agent_name}/{sensor_name}"
                     sensor_ref = PassiveReferenceFrame(
                         frame_id=sensor_frame,
                         timestamp=timestamp,
@@ -105,7 +105,7 @@ class CarlaDatasetLoader:
                     else:
                         sensor_data = None
                     if sensor_data is not None:
-                        data[sensor_frame] = sensor_data
+                        data[sensor_name] = sensor_data
                         raw_data.reference.from_frame = agent_name
                         raw_data.reference.to_frame = sensor_frame
                         raw_data.reference.timestamp = timestamp

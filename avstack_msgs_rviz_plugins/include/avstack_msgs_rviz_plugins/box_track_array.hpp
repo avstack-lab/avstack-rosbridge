@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef AVSTACK_MSGS_RVIZ_PLUGINS__OBJECT_STATE_ARRAY_HPP_
-#define AVSTACK_MSGS_RVIZ_PLUGINS__OBJECT_STATE_ARRAY_HPP_
+#ifndef AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_ARRAY_HPP_
+#define AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_ARRAY_HPP_
 
 #include <QWidget>
 #include <memory>
@@ -27,7 +27,7 @@
 #include <rviz_rendering/objects/billboard_line.hpp>
 
 
-#include "avstack_msgs_rviz_plugins/object_state_common.hpp"
+#include "avstack_msgs_rviz_plugins/box_track_common.hpp"
 #include "avstack_msgs_rviz_plugins/visibility_control.hpp"
 
 typedef std::shared_ptr<rviz_rendering::BillboardLine> BillboardLinePtr;
@@ -35,33 +35,33 @@ typedef std::shared_ptr<rviz_rendering::BillboardLine> BillboardLinePtr;
 namespace rviz_plugins
 {
 
-class ObjectStateArrayDisplay
-  : public ObjectStateCommon<avstack_msgs::msg::ObjectStateArray>
+class BoxTrackArrayDisplay
+  : public BoxTrackCommon<avstack_msgs::msg::BoxTrackArray>
 {
   Q_OBJECT
 
 public:
   using Marker = visualization_msgs::msg::Marker;
-  using ObjectState = avstack_msgs::msg::ObjectState;
-  using ObjectStateArray = avstack_msgs::msg::ObjectStateArray;
+  using BoxTrack = avstack_msgs::msg::BoxTrack;
+  using BoxTrackArray = avstack_msgs::msg::BoxTrackArray;
 
-  OBJECT_STATE_ARRAY_DISPLAY_HPP_PUBLIC
-  ObjectStateArrayDisplay();
-  OBJECT_STATE_ARRAY_DISPLAY_HPP_PUBLIC
-  ~ObjectStateArrayDisplay();
-  OBJECT_STATE_ARRAY_DISPLAY_HPP_PUBLIC
+  BOX_TRACK_ARRAY_DISPLAY_HPP_PUBLIC
+  BoxTrackArrayDisplay();
+  BOX_TRACK_ARRAY_DISPLAY_HPP_PUBLIC
+  ~BoxTrackArrayDisplay();
+  BOX_TRACK_ARRAY_DISPLAY_HPP_PUBLIC
   void onInitialize() override;
-  OBJECT_STATE_ARRAY_DISPLAY_HPP_PUBLIC
+  BOX_TRACK_ARRAY_DISPLAY_HPP_PUBLIC
   void load(const rviz_common::Config & config) override;
-  OBJECT_STATE_ARRAY_DISPLAY_HPP_PUBLIC
+  BOX_TRACK_ARRAY_DISPLAY_HPP_PUBLIC
   void update(float wall_dt, float ros_dt) override;
-  OBJECT_STATE_ARRAY_DISPLAY_HPP_PUBLIC
+  BOX_TRACK_ARRAY_DISPLAY_HPP_PUBLIC
   void reset() override;
 
 private:
   // Convert boxes into markers, push them to the display queue
-  void processMessage(ObjectStateArray::ConstSharedPtr msg) override;
-  ObjectStateArray::ConstSharedPtr latest_msg;
+  void processMessage(BoxTrackArray::ConstSharedPtr msg) override;
+  BoxTrackArray::ConstSharedPtr latest_msg;
 
 protected:
   bool only_edge_;
@@ -78,4 +78,4 @@ protected Q_SLOTS:
 };
 }  // namespace rviz_plugins
 
-#endif  // AVSTACK_MSGS_RVIZ_PLUGINS__OBJECT_STATE_ARRAY_HPP_
+#endif  // AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_ARRAY_HPP_

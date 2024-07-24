@@ -1,7 +1,27 @@
 <library path="avstack_msgs_rviz_plugins">
 
     <!-- Displays plugins -->
-  
+    <class
+      name="avstack_msgs_rviz_plugins/BoxTrack"
+      type="rviz_plugins::BoxTrackDisplay"
+      base_class_type="rviz_common::Display"
+    >
+      <description>
+        Display BoxTrack via markers or edges
+      </description>
+      <message_type>avstack_msgs::msg::BoxTrack</message_type>
+    </class>
+    <class
+      name="avstack_msgs_rviz_plugins/BoxTrackArray"
+      type="rviz_plugins::BoxTrackArrayDisplay"
+      base_class_type="rviz_common::Display"
+    >
+      <description>
+        Display BoxTrack Array via markers or edges
+      </description>
+      <message_type>avstack_msgs::msg::BoxTrackArray</message_type>
+    </class>
+
     <class
       name="avstack_msgs_rviz_plugins/ObjectState"
       type="rviz_plugins::ObjectStateDisplay"

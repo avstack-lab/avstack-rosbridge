@@ -44,3 +44,4 @@ def test_pc2_to_avstack():
     pc2msg = li_bridge.avstack_to_pc2(pc_data)
     pc_data2 = li_bridge.pc2_to_avstack(pc2msg, calibration=lidar_calib)
     assert isinstance(pc_data2, LidarData)
+    assert np.allclose(pc_data.data.x, pc_data2.data.x)

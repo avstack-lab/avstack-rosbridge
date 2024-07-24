@@ -15,10 +15,9 @@ class DetectionBridge:
 
     @staticmethod
     def detection_to_avstack(det_msg: RosDetection3D) -> BoxDetection:
-        timestamp = Bridge.rostime_to_time(det_msg.header.stamp)
-        bbox = GeometryBridge.box3d_to_avstack(det_msg.bbox)
+        bbox = GeometryBridge.box3d_to_avstack(det_msg.bbox, header=det_msg.header)
         det_out = BoxDetection(
-            frame=0, timestamp=timestamp, box=bbox, source_identifier="0"
+            box=bbox, source_identifier="0", reference=bbox.reference
         )
         return det_out
 
@@ -37,16 +36,20 @@ class DetectionBridge:
     ##########################################
 
     @staticmethod
-    def avstack_to_detection(det: BoxDetection) -> RosDetection3D:
-        header = Bridge.reference_to_header(det.box.reference)
+    def avstack_to_detection(det: BoxDetection, header=None) -> RosDetection3D:
+        if header is None:
+            header = Bridge.reference_to_header(det.box.reference)
         results = []  # TODO
-        bbox = GeometryBridge.avstack_to_box3d(det.box)
-        RosDetection3D(header=header, results=results, bbox=bbox)
+        bbox = GeometryBridge.avstack_to_box3d(det.box, stamped=False)
+        det_ros = RosDetection3D(header=header, results=results, bbox=bbox)
+        return det_ros
 
     @staticmethod
     def avstack_to_detectionarray(
         dets: DataContainer, header=None
     ) -> RosDetection3DArray:
-        dets_ros = [DetectionBridge.avstack_to_detection(det) for det in dets]
+        dets_ros = [
+            DetectionBridge.avstack_to_detection(det, header=header) for det in dets
+        ]
         dets_ros_array = RosDetection3DArray(header=header, detections=dets_ros)
         return dets_ros_array

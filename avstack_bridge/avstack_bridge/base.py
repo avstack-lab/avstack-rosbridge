@@ -74,12 +74,17 @@ class Bridge:
         return Transform(translation=translation, rotation=rotation)
 
     @staticmethod
-    def tf2_to_reference(tf: TransformStamped) -> ReferenceFrame:
+    def tf2_to_reference(
+        tf: TransformStamped, reference: ReferenceFrame = None
+    ) -> ReferenceFrame:
         # **conjugate quaternion for tf2**
         if tf.header.frame_id == "world":
             reference = GlobalOrigin3D
         else:
-            raise NotImplementedError(tf.header.frame_id)
+            if reference is None:
+                raise ValueError(
+                    "Input reference cannot be none if source frame is not world"
+                )
         x = np.array(
             [
                 tf.transform.translation.x,
@@ -99,4 +104,5 @@ class Bridge:
             reference=reference,
             to_frame=tf.child_frame_id,
             from_frame=tf.header.frame_id,
+            timestamp=Bridge.rostime_to_time(tf.header.stamp),
         )

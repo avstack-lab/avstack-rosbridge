@@ -6,6 +6,7 @@ from rclpy.node import Node
 from rclpy.serialization import serialize_message
 from rclpy.time import Time
 from tf2_msgs.msg import TFMessage
+from geometry_msgs.msg import Transform, TransformStamped
 
 from .carla_dataset_loader import CarlaDatasetLoader
 
@@ -121,7 +122,8 @@ class CarlaDatasetWriter(Node):
         self.write("object_truth", obj_state_array)
 
         # publish agent and sensor pose information
-        transforms = list(agent_poses.values()) + list(sensor_poses.values())
+        map_frame = Transf
+        transforms = [map_frame] + list(agent_poses.values()) + list(sensor_poses.values())
         # self.get_logger().info(",".join([str(Bridge.rostime_to_time(tf.header.stamp)) for tf in transforms]))
         agent_poses_tf = TFMessage(transforms=transforms)
         self.write("tf", agent_poses_tf)

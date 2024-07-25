@@ -241,7 +241,7 @@ class GeometryBridge:
         if stamped:
             raise NotImplementedError("Cannot do stamped box yet")
         if box:
-            center = cls.avstack_to_pose(box.position, box.attitude, stamped=stamped)
+            center = cls.avstack_to_pose(box.center, box.attitude, stamped=stamped)
             size = RosVector3(
                 x=float(box.l), y=float(box.w), z=float(box.h)
             )  # TODO: is this the right order?

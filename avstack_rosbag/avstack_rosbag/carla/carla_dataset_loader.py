@@ -144,4 +144,5 @@ class CarlaDatasetLoader:
             agent_data,
             agent_objects,
             frame,
+            timestamp,
         )

@@ -2,6 +2,7 @@ from avstack.datastructs import DataContainer
 from avstack.modules.perception.detections import BoxDetection
 from vision_msgs.msg import Detection3D as RosDetection3D
 from vision_msgs.msg import Detection3DArray as RosDetection3DArray
+from vision_msgs.msg import ObjectHypothesis, ObjectHypothesisWithPose
 
 from .base import Bridge
 from .geometry import GeometryBridge
@@ -39,9 +40,10 @@ class DetectionBridge:
     def avstack_to_detection(det: BoxDetection, header=None) -> RosDetection3D:
         if header is None:
             header = Bridge.reference_to_header(det.box.reference)
-        results = []  # TODO
         bbox = GeometryBridge.avstack_to_box3d(det.box, stamped=False)
-        det_ros = RosDetection3D(header=header, results=results, bbox=bbox)
+        hypo = ObjectHypothesis(score=float(det.score), class_id=det.obj_type)
+        hypo_pose = ObjectHypothesisWithPose(hypothesis=hypo)
+        det_ros = RosDetection3D(header=header, results=[hypo_pose], bbox=bbox)
         return det_ros
 
     @staticmethod

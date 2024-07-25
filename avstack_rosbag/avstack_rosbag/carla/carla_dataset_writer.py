@@ -2,10 +2,13 @@ import os
 
 import rclpy
 import rosbag2_py
+from geometry_msgs.msg import TransformStamped
 from rclpy.node import Node
 from rclpy.serialization import serialize_message
 from rclpy.time import Time
 from tf2_msgs.msg import TFMessage
+
+from avstack_bridge import Bridge
 
 from .carla_dataset_loader import CarlaDatasetLoader
 
@@ -54,6 +57,11 @@ class CarlaDatasetWriter(Node):
             topic_name="tf",
             topic_type="tf2_msgs/msg/TFMessage",
         )
+        self.create_topic(
+            topic_name="tf_static",
+            topic_type="tf2_msgs/msg/TFMessage",
+        )
+        self.sent_static_tf = False
 
         # TOPIC: active agents
         self.create_topic(
@@ -103,6 +111,22 @@ class CarlaDatasetWriter(Node):
                 Time.from_msg(msg.transforms[0].header.stamp).nanoseconds,
             )
 
+    def send_static_transforms(self, agent_poses: dict, timestamp: float):
+        # MAP TO WORLD TRANSFORM IS STATIC IDENTITY
+        self.get_logger().info("Sending static transform...")
+
+        # map frame is the initial agent x-y position
+        tf = TransformStamped()
+        tf.header.stamp = Bridge.time_to_rostime(timestamp)
+        tf.header.frame_id = "world"
+        tf.child_frame_id = "map"
+        agent_0 = list(agent_poses.values())[0]
+        tf.transform = agent_0.transform
+        tf.transform.translation.z = 0.0
+
+        self.write("tf_static", TFMessage(transforms=[tf]))
+        self.sent_static_tf = True
+
     def timer_callback(self):
         (
             agent_names,
@@ -112,7 +136,12 @@ class CarlaDatasetWriter(Node):
             agent_data,
             agent_objects,
             frame,
+            timestamp,
         ) = self.loader.load_next()
+
+        # publish static transforms once
+        if not self.sent_static_tf:
+            self.send_static_transforms(agent_poses=agent_poses, timestamp=timestamp)
 
         # publish the names of active agents
         self.write("active_agents", agent_names)

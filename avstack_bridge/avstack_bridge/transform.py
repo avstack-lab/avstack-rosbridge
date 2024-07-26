@@ -19,7 +19,7 @@ https://robotics.stackexchange.com/questions/97873/default-transform-direction-i
 See: https://github.com/ros2/geometry2/tree/humble/tf2_geometry_msgs
 And: https://docs.ros.org/en/ros2_packages/rolling/api/tf2_ros/generated/classtf2__ros_1_1BufferInterface.html
 """
-
+from typing import Union
 import numpy as np
 import tf2_ros
 from avstack.geometry import q_mult_vec
@@ -31,6 +31,7 @@ from geometry_msgs.msg import (
     Vector3,
     Vector3Stamped,
 )
+from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Header
 from tf2_geometry_msgs import (  # noqa
     do_transform_point,
@@ -38,9 +39,118 @@ from tf2_geometry_msgs import (  # noqa
     do_transform_vector3,
 )
 from vision_msgs.msg import BoundingBox3D
+try:
+    from numpy.lib.recfunctions import (structured_to_unstructured, unstructured_to_structured)
+except ImportError:
+    # Fix for RHEL because its NumPy version does not include these functions
+    from sensor_msgs_py.numpy_compat import (structured_to_unstructured,
+                                             unstructured_to_structured)
+from sensor_msgs_py.point_cloud2 import create_cloud, read_points
+
 
 from avstack_bridge.base import Bridge
 from avstack_msgs.msg import BoxTrack, BoxTrackStamped, ObjectStateStamped
+
+
+
+def to_msg_msg(msg):
+    return msg
+
+
+tf2_ros.ConvertRegistration().add_to_msg(PointCloud2, to_msg_msg)
+
+
+def from_msg_msg(msg):
+    return msg
+
+
+tf2_ros.ConvertRegistration().add_from_msg(PointCloud2, from_msg_msg)
+
+
+def transform_points(
+        point_cloud: np.ndarray,
+        transform: Transform) -> np.ndarray:
+    """
+    Transform a bulk of points from an numpy array using a provided `Transform`.
+
+    :param point_cloud: nx3 Array of points where n is the number of points
+    :param transform: TF2 transform used for the transformation
+    :returns: Array with the same shape as the input array, but with the transformation applied
+    """
+    # Build affine transformation
+    transform_translation = np.array([
+        transform.translation.x,
+        transform.translation.y,
+        transform.translation.z
+    ])
+    transform_rotation_matrix = _get_mat_from_quat(
+        np.array([
+            transform.rotation.w,
+            transform.rotation.x,
+            transform.rotation.y,
+            transform.rotation.z
+        ]))
+
+    # "Batched" matmul meaning a matmul for each point
+    # First we offset all points by the translation part
+    # followed by a rotation using the rotation matrix
+    return np.einsum(
+        'ij, pj -> pi',
+        transform_rotation_matrix,
+        point_cloud) + transform_translation
+
+
+def do_transform_cloud(
+        cloud: PointCloud2,
+        transform: Union[Transform, TransformStamped]) -> PointCloud2:
+    """
+    Apply a `Transform` or `TransformStamped` on a `PointCloud2`.
+
+    The x, y, and z values are transformed into a different frame,
+    while the rest of the cloud is kept untouched.
+
+    :param cloud: The point cloud that should be transformed
+    :param transform: The transform which will applied to the point cloud
+    :returns: The transformed point cloud
+    """
+    # Create new Header so original header is not altered
+    new_header = Header(
+        stamp=cloud.header.stamp,
+        frame_id=cloud.header.frame_id)
+
+    # Check if we have a TransformStamped and are able to update the frame_id
+    if isinstance(transform, TransformStamped):
+        new_header.frame_id = transform.header.frame_id
+        transform = transform.transform
+
+    # Check if xyz are a subset of the field names
+    required_fields = set('xyz')
+    present_fields = {field.name for field in cloud.fields}
+    assert required_fields <= present_fields, \
+        'Point cloud needs the fields x, y, and z for the transformation'
+
+    # Read points as structured NumPy array
+    points = read_points(cloud)
+
+    # Transform xyz part of the pointcloud using the given transform
+    transformed_xyz = transform_points(
+        structured_to_unstructured(points[['x', 'y', 'z']]),
+        transform)
+
+    # Check if there are additional fields that need to be merged with the transformed coordinates
+    if required_fields != present_fields:
+        # Merge original array including non coordinate fields with the transformed coordinates
+        # The copy is needed as the original message would be altered otherwise
+        points = points.copy()
+        points[['x', 'y', 'z']] = unstructured_to_structured(transformed_xyz)
+    else:
+        points = transformed_xyz
+
+    # Serialize pointcloud message
+    return create_cloud(new_header, cloud.fields, points)
+
+
+tf2_ros.TransformRegistration().add(PointCloud2, do_transform_cloud)
 
 
 def do_transform_twist(

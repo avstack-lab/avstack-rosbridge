@@ -234,10 +234,7 @@ def do_transform_box(box: BoundingBox3D, tf: TransformStamped) -> BoundingBox3D:
 tf2_ros.TransformRegistration().add(BoundingBox3D, do_transform_box)
 
 
-def do_transform_boxtrack(
-    boxtrack: BoxTrackStamped, tf: TransformStamped
-) -> BoxTrackStamped:
-    track = boxtrack.track
+def do_transform_boxtrack(track: BoxTrack, tf: TransformStamped) -> BoxTrack:
     p_tf = Bridge.ndarray_to_list(
         do_transform_boxtrack_covariance(Bridge.list_to_2d_ndarray(track.p), tf)
     )
@@ -252,7 +249,16 @@ def do_transform_boxtrack(
         dt_coast=track.dt_coast,
         identifier=track.identifier,
     )
+    return track_tf
 
+
+tf2_ros.TransformRegistration().add(BoxTrack, do_transform_boxtrack)
+
+
+def do_transform_boxtrackstamped(
+    boxtrack: BoxTrackStamped, tf: TransformStamped
+) -> BoxTrackStamped:
+    track_tf = do_transform_boxtrack(boxtrack.track)
     boxtrack_tf = BoxTrackStamped()
     boxtrack_tf.track = track_tf
     boxtrack_tf.header = tf.header
@@ -260,7 +266,7 @@ def do_transform_boxtrack(
     return boxtrack_tf
 
 
-tf2_ros.TransformRegistration().add(BoxTrackStamped, do_transform_boxtrack)
+tf2_ros.TransformRegistration().add(BoxTrackStamped, do_transform_boxtrackstamped)
 
 
 def do_transform_boxtrack_covariance(

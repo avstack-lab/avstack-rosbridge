@@ -61,7 +61,7 @@ class CarlaDatasetWriter(Node):
             topic_name="tf_static",
             topic_type="tf2_msgs/msg/TFMessage",
         )
-        self.sent_static_tf = False
+        self.static_tfs_sent = set()
 
         # TOPIC: active agents
         self.create_topic(
@@ -111,49 +111,85 @@ class CarlaDatasetWriter(Node):
                 Time.from_msg(msg.transforms[0].header.stamp).nanoseconds,
             )
 
-    def send_static_transforms(self, agent_poses: dict, timestamp: float):
-        # MAP TO WORLD TRANSFORM IS STATIC IDENTITY
-        self.get_logger().info("Sending static transform...")
+    def send_transforms(
+        self,
+        agent_poses: dict,
+        agent_types: dict,
+        sensor_poses: dict,
+        timestamp: float,
+    ):
+
+        #########################################################
+        # STATIC TRANSFORMATIONS
+        #########################################################
+        tfs_static = []
 
         # map frame is the initial agent x-y position
-        tf = TransformStamped()
-        tf.header.stamp = Bridge.time_to_rostime(timestamp)
-        tf.header.frame_id = "world"
-        tf.child_frame_id = "map"
-        agent_0 = list(agent_poses.values())[0]
-        tf.transform = agent_0.transform
-        tf.transform.translation.z = 0.0
+        if "map" not in self.static_tfs_sent:
+            tf_map = TransformStamped()
+            tf_map.header.stamp = Bridge.time_to_rostime(timestamp)
+            tf_map.header.frame_id = "world"
+            tf_map.child_frame_id = "map"
+            agent_0 = list(agent_poses.values())[0]
+            tf_map.transform = agent_0.transform
+            tf_map.transform.translation.z = 0.0
+            tfs_static.append(tf_map)
+            self.static_tfs_sent.add("map")
 
-        self.write("tf_static", TFMessage(transforms=[tf]))
-        self.sent_static_tf = True
+        # sensor poses
+        for s_ID, s_pose in sensor_poses.items():
+            if s_ID not in self.static_tfs_sent:
+                tfs_static.append(s_pose)
+                self.static_tfs_sent.add(s_ID)
+
+        # static agent poses
+        for a_ID, a_pose in agent_poses.items():
+            if "static" in agent_types[a_ID]:
+                if a_ID not in self.static_tfs_sent:
+                    tfs_static.append(a_pose)
+                    self.static_tfs_sent.add(a_ID)
+
+        # only send static once
+        if len(tfs_static) > 0:
+            self.write("tf_static", TFMessage(transforms=tfs_static))
+
+        #########################################################
+        # DYNAMIC TRANSFORMATIONS
+        #########################################################
+
+        tfs_dynamic = [
+            a_pose
+            for a_ID, a_pose in agent_poses.items()
+            if "static" not in agent_types[a_ID]
+        ]
+        self.write("tf", TFMessage(transforms=tfs_dynamic))
 
     def timer_callback(self):
         (
             agent_names,
             obj_state_array,
             agent_poses,
-            sensor_poses,
+            agent_types,
             agent_data,
             agent_objects,
+            sensor_poses,
             frame,
             timestamp,
         ) = self.loader.load_next()
 
         # publish static transforms once
-        if not self.sent_static_tf:
-            self.send_static_transforms(agent_poses=agent_poses, timestamp=timestamp)
+        self.send_transforms(
+            agent_poses=agent_poses,
+            agent_types=agent_types,
+            sensor_poses=sensor_poses,
+            timestamp=timestamp,
+        )
 
         # publish the names of active agents
         self.write("active_agents", agent_names)
 
         # publish object ground truth object states
         self.write("object_truth", obj_state_array)
-
-        # publish agent and sensor pose information
-        transforms = list(agent_poses.values()) + list(sensor_poses.values())
-        # self.get_logger().info(",".join([str(Bridge.rostime_to_time(tf.header.stamp)) for tf in transforms]))
-        agent_poses_tf = TFMessage(transforms=transforms)
-        self.write("tf", agent_poses_tf)
 
         # publish agent sensor data
         for agent in agent_data:

@@ -50,6 +50,7 @@ class CarlaDatasetLoader:
         objs_msgs.header.stamp = Bridge.time_to_rostime(timestamp)
 
         sensor_poses = {}
+        agent_types = {}
         agent_poses = {}
         agent_data = {}
         agent_objects = {}
@@ -70,6 +71,7 @@ class CarlaDatasetLoader:
             agent_ref.to_frame = agent_name
             agent_ref.timestamp = timestamp
             agent_poses[agent_name] = Bridge.reference_to_tf2_stamped(agent_ref)
+            agent_types[agent_name] = agent.obj_type
 
             # agent sensor data
             data = {}
@@ -140,9 +142,10 @@ class CarlaDatasetLoader:
             agent_names_msg,
             objs_msgs,
             agent_poses,
-            sensor_poses,
+            agent_types,
             agent_data,
             agent_objects,
+            sensor_poses,
             frame,
             timestamp,
         )

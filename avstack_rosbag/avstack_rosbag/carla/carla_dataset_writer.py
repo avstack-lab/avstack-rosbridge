@@ -6,6 +6,7 @@ from geometry_msgs.msg import TransformStamped
 from rclpy.node import Node
 from rclpy.serialization import serialize_message
 from rclpy.time import Time
+from std_msgs.msg import String
 from tf2_msgs.msg import TFMessage
 
 from avstack_bridge import Bridge
@@ -52,6 +53,13 @@ class CarlaDatasetWriter(Node):
         converter_options = rosbag2_py._storage.ConverterOptions("", "")
         self.writer.open(storage_options, converter_options)
 
+        # TOPIC: metadata
+        self.initialized = False
+        self.create_topic(
+            topic_name="initialization",
+            topic_type="std_msgs/msg/String",
+        )
+
         # TOPIC: transforms
         self.create_topic(
             topic_name="tf",
@@ -97,19 +105,22 @@ class CarlaDatasetWriter(Node):
         )
         self.writer.create_topic(topic)
 
-    def write(self, topic, msg):
-        try:
-            self.writer.write(
-                topic,
-                serialize_message(msg),
-                Time.from_msg(msg.header.stamp).nanoseconds,
-            )
-        except AttributeError:  # assume list if doesn't have header at top level
-            self.writer.write(
-                topic,
-                serialize_message(msg),
-                Time.from_msg(msg.transforms[0].header.stamp).nanoseconds,
-            )
+    def write(self, topic, msg, timestamp=None):
+        if timestamp is None:
+            try:
+                timestamp_in_nanosecs = Time.from_msg(msg.header.stamp).nanoseconds
+            except AttributeError:
+                timestamp_in_nanosecs = Time.from_msg(
+                    msg.transforms[0].header.stamp
+                ).nanoseconds
+        else:
+            timestamp_in_nanosecs = int(1e9 * timestamp)
+
+        self.writer.write(
+            topic,
+            serialize_message(msg),
+            timestamp_in_nanosecs,
+        )
 
     def send_transforms(
         self,
@@ -176,6 +187,12 @@ class CarlaDatasetWriter(Node):
             frame,
             timestamp,
         ) = self.loader.load_next()
+
+        # publish initial metadata
+        if not self.initialized:
+            init_msg = String(data="reset")
+            self.write("initialization", init_msg, timestamp=timestamp)
+            self.initialized = True
 
         # publish static transforms once
         self.send_transforms(

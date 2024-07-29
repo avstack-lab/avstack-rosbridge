@@ -39,7 +39,7 @@ from tf2_geometry_msgs import (  # noqa
     do_transform_pose,
     do_transform_vector3,
 )
-from vision_msgs.msg import BoundingBox3D
+from vision_msgs.msg import BoundingBox3D, Detection3D, ObjectHypothesisWithPose
 
 
 try:
@@ -173,6 +173,26 @@ def do_transform_twist(
 
 
 tf2_ros.TransformRegistration().add(TwistStamped, do_transform_twist)
+
+
+def do_transform_detection3d(
+    detection: Detection3D, transform: TransformStamped
+) -> Detection3D:
+    res = Detection3D()
+    res_results = []
+    for result in detection.results:
+        res_result = ObjectHypothesisWithPose()
+        res_result.hypothesis = result.hypothesis
+        res_result.pose.pose = do_transform_pose(result.pose.pose, transform)
+        res_results.append(res_result)
+    res.results = res_results
+    res.bbox = do_transform_box(detection.bbox, transform)
+    res.id = detection.id
+    res.header = transform.header
+    return res
+
+
+tf2_ros.TransformRegistration().add(Detection3D, do_transform_detection3d)
 
 
 def do_transform_objectstate(

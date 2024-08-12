@@ -137,7 +137,7 @@ class GeometryBridge:
     def polygon_to_avstack(
         cls,
         polygon: Union[RosPolygon, RosPolygonStamped],
-        header: Union[Header, None],
+        header: Union[Header, None] = None,
     ) -> Polygon:
         reference = Bridge.header_to_reference(
             header if header is not None else polygon.header

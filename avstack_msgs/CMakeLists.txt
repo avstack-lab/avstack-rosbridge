@@ -16,12 +16,10 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AgentArray.msg"
   "msg/ObjectState.msg"
-  "msg/ObjectStateStamped.msg"
   "msg/ObjectStateArray.msg"
   "msg/ObjectStateArrayWithSender.msg"
   "msg/ObjectStateArrayWithSenderArray.msg"
   "msg/BoxTrack.msg"
-  "msg/BoxTrackStamped.msg"
   "msg/BoxTrackArray.msg"
   "msg/BoxTrackArrayWithSender.msg"
   "msg/BoxTrackArrayWithSenderArray.msg"

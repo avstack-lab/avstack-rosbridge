@@ -1,11 +1,10 @@
-from typing import List, Union
+from typing import List
 
 from avstack.datastructs import DataContainer
 from avstack.environment.objects import ObjectState as ObjectStateAV
 from geometry_msgs.msg import Pose, Twist, Vector3
-from std_msgs.msg import Header
 
-from avstack_msgs.msg import ObjectState, ObjectStateArray, ObjectStateStamped
+from avstack_msgs.msg import ObjectState, ObjectStateArray
 
 from .base import Bridge
 from .geometry import GeometryBridge
@@ -18,14 +17,8 @@ class ObjectStateBridge:
     ##########################################
 
     @staticmethod
-    def objectstate_to_avstack(
-        msg_obj: Union[ObjectState, ObjectStateStamped]
-    ) -> ObjectStateAV:
+    def objectstate_to_avstack(msg_obj: ObjectState) -> ObjectStateAV:
         if isinstance(msg_obj, ObjectState):
-            obj = msg_obj
-            timestamp = None
-            header = Header(frame_id="world")
-        elif isinstance(msg_obj, ObjectStateStamped):
             obj = msg_obj.state
             timestamp = Bridge.rostime_to_time(msg_obj.header.stamp)
             header = msg_obj.header
@@ -66,8 +59,9 @@ class ObjectStateBridge:
         header = msg_objarray.header
         obj_states = []
         for obj in msg_objarray.states:
-            msg_obj = ObjectStateStamped(header=header, state=obj)
+            msg_obj = ObjectState(header=header, state=obj)
             obj_state = cls.objectstate_to_avstack(
+                header=header,
                 msg_obj=msg_obj,
             )
             obj_states.append(obj_state)
@@ -85,7 +79,9 @@ class ObjectStateBridge:
     ##########################################
 
     @staticmethod
-    def avstack_to_objectstate(obj_state: ObjectStateAV) -> ObjectState:
+    def avstack_to_objectstate(obj_state: ObjectStateAV, header=None) -> ObjectState:
+        if not header:
+            header = Bridge.reference_to_header(obj_state.reference)
         position = GeometryBridge.avstack_to_position(obj_state.position, stamped=False)
         orientation = GeometryBridge.avstack_to_attitude(
             obj_state.attitude, stamped=False
@@ -97,6 +93,7 @@ class ObjectStateBridge:
         pose = Pose(position=position, orientation=orientation)
         twist = Twist(linear=linear, angular=angular)
         state = ObjectState(
+            header=header,
             obj_type=obj_state.obj_type if obj_state.obj_type else "",
             pose=pose,
             twist=twist,
@@ -107,15 +104,6 @@ class ObjectStateBridge:
             box=GeometryBridge.avstack_to_box3d(obj_state.box, stamped=False),
         )
         return state
-
-    @classmethod
-    def avstack_to_objectstatestamped(
-        cls, obj_state: ObjectStateAV, header=None
-    ) -> ObjectStateStamped:
-        if not header:
-            header = Bridge.reference_to_header(obj_state.reference)
-        state = cls.avstack_to_objectstate(obj_state)
-        return ObjectStateStamped(header=header, state=state)
 
     @classmethod
     def avstack_to_objecstatearray(
@@ -129,5 +117,5 @@ class ObjectStateBridge:
             return ObjectStateArray(header=header)
         if not header:
             header = Bridge.reference_to_header(obj_states[0].reference)
-        states = [cls.avstack_to_objectstate(obj) for obj in obj_states]
+        states = [cls.avstack_to_objectstate(obj, header=header) for obj in obj_states]
         return ObjectStateArray(header=header, states=states)

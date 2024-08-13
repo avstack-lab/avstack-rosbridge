@@ -4,9 +4,8 @@ import numpy as np
 from avstack.datastructs import DataContainer
 from avstack.environment.objects import ObjectState
 from avstack.modules.tracking.tracks import BasicBoxTrack3D
-from std_msgs.msg import Header
 
-from avstack_msgs.msg import BoxTrack, BoxTrackArray, BoxTrackStamped, ObjectStateArray
+from avstack_msgs.msg import BoxTrack, BoxTrackArray, ObjectStateArray
 
 from .base import Bridge
 from .geometry import GeometryBridge
@@ -20,10 +19,7 @@ class TrackBridge:
     ) -> DataContainer:
         timestamp = Bridge.rostime_to_time(trks_msg.header.stamp)
         try:
-            tracks = [
-                cls.boxtrack_to_avstack(trk_msg=trk, header=trks_msg.header)
-                for trk in trks_msg.tracks
-            ]
+            tracks = [cls.boxtrack_to_avstack(trk_msg=trk) for trk in trks_msg.tracks]
         except AttributeError:
             tracks = ObjectStateBridge.objectstatearray_to_avstack(trks_msg)
 
@@ -32,14 +28,8 @@ class TrackBridge:
         )
 
     @staticmethod
-    def boxtrack_to_avstack(
-        trk_msg: Union[BoxTrack, BoxTrackStamped], header: Union[Header, None] = None
-    ) -> BasicBoxTrack3D:
-        if isinstance(trk_msg, BoxTrackStamped):
-            if header is not None:
-                raise RuntimeError("Passed stamped and a header...")
-            header = trk_msg.header
-            trk_msg = trk_msg.track
+    def boxtrack_to_avstack(trk_msg: BoxTrack) -> BasicBoxTrack3D:
+        header = trk_msg.header
         return BasicBoxTrack3D(
             t0=0,
             box3d=GeometryBridge.box3d_to_avstack(trk_msg.box, header=header),
@@ -53,14 +43,18 @@ class TrackBridge:
             t=Bridge.rostime_to_time(header.stamp),
             dt_coast=trk_msg.dt_coast,
             n_updates=trk_msg.n_updates,
+            score_force=trk_msg.score,
         )
 
     @staticmethod
-    def avstack_to_boxtrack(track: BasicBoxTrack3D) -> BoxTrack:
+    def avstack_to_boxtrack(track: BasicBoxTrack3D, header=None) -> BoxTrack:
+        if not header:
+            header = Bridge.reference_to_header(track.reference)
         box = GeometryBridge.avstack_to_box3d(box=track.box3d, stamped=False)
         vel = GeometryBridge.avstack_to_velocity(velocity=track.velocity, stamped=False)
         if isinstance(track, BasicBoxTrack3D):
             return BoxTrack(
+                header=header,
                 obj_type=track.obj_type if track.obj_type else "",
                 box=box,
                 velocity=vel,
@@ -68,9 +62,11 @@ class TrackBridge:
                 n_updates=track.n_updates,
                 dt_coast=float(track.dt_coast),
                 identifier=track.ID,
+                score=track.score,
             )
         elif isinstance(track, ObjectState):
             return BoxTrack(
+                header=header,
                 obj_type=track.obj_type if track.obj_type else "",
                 box=box,
                 velocity=vel,
@@ -78,17 +74,10 @@ class TrackBridge:
                 n_updates=0,
                 dt_coast=0.0,
                 identifier=track.ID,
+                score=track.score,
             )
         else:
             raise NotImplementedError(type(track))
-
-    @classmethod
-    def avstack_to_boxtrack_stamped(
-        cls, track: BasicBoxTrack3D, header=None
-    ) -> BoxTrackStamped:
-        if not header:
-            header = Bridge.reference_to_header(track.reference)
-        return BoxTrackStamped(header=header, track=cls.avstack_to_boxtrack(track))
 
     @classmethod
     def avstack_to_tracks(
@@ -97,7 +86,7 @@ class TrackBridge:
         if len(tracks) > 0:
             trks_msg = BoxTrackArray(
                 header=header,
-                tracks=[cls.avstack_to_boxtrack(trk) for trk in tracks],
+                tracks=[cls.avstack_to_boxtrack(trk, header=header) for trk in tracks],
             )
         else:
             trks_msg = default_type(header=header, tracks=[])

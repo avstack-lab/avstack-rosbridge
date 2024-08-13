@@ -57,7 +57,7 @@ except ImportError:
 from sensor_msgs_py.point_cloud2 import create_cloud, read_points
 
 from avstack_bridge.base import Bridge
-from avstack_msgs.msg import BoxTrack, BoxTrackStamped, ObjectStateStamped
+from avstack_msgs.msg import BoxTrack, ObjectState
 
 
 def to_msg_msg(msg):
@@ -196,9 +196,9 @@ tf2_ros.TransformRegistration().add(Detection3D, do_transform_detection3d)
 
 
 def do_transform_objectstate(
-    objectstate: ObjectStateStamped, transform: TransformStamped
-) -> ObjectStateStamped:
-    res = ObjectStateStamped()
+    objectstate: ObjectState, transform: TransformStamped
+) -> ObjectState:
+    res = ObjectState()
     res.state.obj_type = objectstate.state.obj_type
     res.state.pose = do_transform_pose(objectstate.state.pose, transform)
     res.state.twist = do_transform_twist(
@@ -222,7 +222,7 @@ def do_transform_objectstate(
     return res
 
 
-tf2_ros.TransformRegistration().add(ObjectStateStamped, do_transform_objectstate)
+tf2_ros.TransformRegistration().add(ObjectState, do_transform_objectstate)
 
 
 def do_transform_box(box: BoundingBox3D, tf: TransformStamped) -> BoundingBox3D:
@@ -241,6 +241,7 @@ def do_transform_boxtrack(track: BoxTrack, tf: TransformStamped) -> BoxTrack:
     box_tf = do_transform_box(track.box, tf)
     v_tf = do_transform_vector3(Vector3Stamped(vector=track.velocity), tf).vector
     track_tf = BoxTrack(
+        header=tf.header,
         obj_type=track.obj_type,
         box=box_tf,
         velocity=v_tf,
@@ -253,20 +254,6 @@ def do_transform_boxtrack(track: BoxTrack, tf: TransformStamped) -> BoxTrack:
 
 
 tf2_ros.TransformRegistration().add(BoxTrack, do_transform_boxtrack)
-
-
-def do_transform_boxtrackstamped(
-    boxtrack: BoxTrackStamped, tf: TransformStamped
-) -> BoxTrackStamped:
-    track_tf = do_transform_boxtrack(boxtrack.track)
-    boxtrack_tf = BoxTrackStamped()
-    boxtrack_tf.track = track_tf
-    boxtrack_tf.header = tf.header
-
-    return boxtrack_tf
-
-
-tf2_ros.TransformRegistration().add(BoxTrackStamped, do_transform_boxtrackstamped)
 
 
 def do_transform_boxtrack_covariance(

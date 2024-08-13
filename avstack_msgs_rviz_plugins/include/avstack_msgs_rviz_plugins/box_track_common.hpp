@@ -55,6 +55,9 @@ protected:
   std::unique_ptr<MarkerCommon> m_marker_common;
   QColor color;
   std::vector<BillboardLinePtr> edges_;
+  std::unordered_map<int, visualization_msgs::msg::Marker::SharedPtr> score_markers;
+  std::unordered_map<int, visualization_msgs::msg::Marker::SharedPtr> identifier_markers;
+
 
   visualization_msgs::msg::Marker::SharedPtr get_marker(
     const avstack_msgs::msg::BoxTrack & trk)
@@ -104,14 +107,24 @@ protected:
     return marker;
   }
 
-  void showBoxes(const BoxTrackArray::ConstSharedPtr & msg)
+  void showBoxes(
+    const BoxTrackArray::ConstSharedPtr & msg,
+    const bool show_score,
+    const bool show_identifier)
   {
     edges_.clear();
     m_marker_common->clearMarkers();
+    ClearScores(show_score);
+    ClearIdentifiers(show_identifier);
 
     for (size_t idx = 0U; idx < msg->tracks.size(); idx++) {
       const auto marker_ptr = get_marker(msg->tracks[idx]);
-
+      if (show_score) {
+        ShowScore(msg->tracks[idx], msg->tracks[idx].score, idx);
+      }
+      if (show_identifier) {
+        ShowIdentifier(msg->tracks[idx], msg->tracks[idx].identifier, idx);
+      }
       marker_ptr->color.r = color.red() / 255.0;
       marker_ptr->color.g = color.green() / 255.0;
       marker_ptr->color.b = color.blue() / 255.0;
@@ -123,12 +136,23 @@ protected:
     }
   }
 
-  void showBoxes(const BoxTrack::ConstSharedPtr & msg)
+  void showBoxes(
+    const BoxTrack::ConstSharedPtr & msg,
+    const bool show_score,
+    const bool show_identifier)
   {
     edges_.clear();
     m_marker_common->clearMarkers();
+    ClearScores(show_score);
+    ClearIdentifiers(show_identifier);
 
     const auto marker_ptr = get_marker(*msg);
+    if (show_score) {
+      ShowScore(*msg, msg->score, 0);
+    }
+    if (show_identifier) {
+      ShowIdentifier(*msg, msg->identifier, 0);
+    }
     marker_ptr->header.frame_id = qPrintable(this->fixed_frame_);
     marker_ptr->header.stamp = rclcpp::Clock().now();
     marker_ptr->color.r = color.red() / 255.0;
@@ -154,15 +178,25 @@ protected:
     }
   }
 
-  void showEdges(const BoxTrackArray::ConstSharedPtr & msg)
+  void showEdges(
+    const BoxTrackArray::ConstSharedPtr & msg,
+    const bool show_score,
+    const bool show_identifier)
   {
     m_marker_common->clearMarkers();
+    ClearScores(show_score);
+    ClearIdentifiers(show_identifier);
 
     allocateBillboardLines(msg->tracks.size());
 
     for (size_t idx = 0; idx < msg->tracks.size(); idx++) {
       avstack_msgs::msg::BoxTrack trk = msg->tracks[idx];
-
+      if (show_score) {
+        ShowScore(msg->tracks[idx], msg->tracks[idx].score, idx);
+      }
+      if (show_identifier) {
+        ShowIdentifier(msg->tracks[idx], msg->tracks[idx].identifier, idx);
+      }
       BillboardLinePtr edge = edges_[idx];
       edge->clear();
       Ogre::Vector3 position;
@@ -255,10 +289,23 @@ protected:
     }
   }
 
-  void showEdges(const BoxTrack::ConstSharedPtr & msg)
+  void showEdges(
+    const BoxTrack::ConstSharedPtr & msg,
+    const bool show_score,
+    const bool show_identifier)
   {
     m_marker_common->clearMarkers();
+    ClearScores(show_score);
+    ClearIdentifiers(show_identifier);
+
     allocateBillboardLines(1);
+    if (show_score) {
+      ShowScore(*msg, msg->score, 0);
+    }
+    if (show_identifier) {
+      ShowIdentifier(*msg, msg->identifier, 0);
+    }
+
     BillboardLinePtr edge = edges_[0];
     edge->clear();
     geometry_msgs::msg::Vector3 dimensions = msg->box.size;
@@ -355,6 +402,90 @@ protected:
     edge->finishLine();
     edge->addPoint(D);
     edge->addPoint(H);
+  }
+
+  void ShowScore(
+    const avstack_msgs::msg::BoxTrack track,
+    const double score,
+    const size_t idx)
+  {
+    auto marker = std::make_shared<Marker>();
+    marker->type = Marker::TEXT_VIEW_FACING;
+    marker->action = Marker::ADD;
+    marker->header = track.header;
+    std::ostringstream oss;
+    oss << std::fixed;
+    oss << std::setprecision(2);
+    oss << score;
+    marker->text = oss.str();
+    marker->scale.z = 0.5;         // Set the size of the text
+    marker->id = idx;
+    marker->ns = "score";
+    marker->color.r = 1.0f;
+    marker->color.g = 1.0f;
+    marker->color.b = 1.0f;
+    marker->color.a = alpha;
+    marker->pose.position.x = static_cast<double>(track.box.center.position.x);
+    marker->pose.position.y = static_cast<double>(track.box.center.position.y);
+    marker->pose.position.z =
+      static_cast<double>(track.box.center.position.z + (track.box.size.z / 2.0) * 1.2);
+
+    // Add the marker to the MarkerArray message
+    m_marker_common->addMessage(marker);
+    score_markers[idx] = marker;
+  }
+
+  void ClearScores(const bool show_score)
+  {
+    if (!show_score) {
+      for (auto &[id, marker] : score_markers) {
+        marker->action = visualization_msgs::msg::Marker::DELETE;
+        m_marker_common->addMessage(marker);
+      }
+      score_markers.clear();
+    }
+  }
+
+  void ShowIdentifier(
+    const avstack_msgs::msg::BoxTrack track,
+    const int identifier,
+    const size_t idx)
+  {
+    auto marker = std::make_shared<Marker>();
+    marker->type = Marker::TEXT_VIEW_FACING;
+    marker->action = Marker::ADD;
+    marker->header = track.header;
+    std::ostringstream oss;
+    oss << std::fixed;
+    oss << std::setprecision(2);
+    oss << identifier;
+    marker->text = oss.str();
+    marker->scale.z = 0.5;         // Set the size of the text
+    marker->id = idx;
+    marker->ns = "id";
+    marker->color.r = 1.0f;
+    marker->color.g = 1.0f;
+    marker->color.b = 1.0f;
+    marker->color.a = alpha;
+    marker->pose.position.x = static_cast<double>(track.box.center.position.x);
+    marker->pose.position.y = static_cast<double>(track.box.center.position.y);
+    marker->pose.position.z =
+      static_cast<double>(track.box.center.position.z + (track.box.size.z / 2.0) * 1.2);
+
+    // Add the marker to the MarkerArray message
+    m_marker_common->addMessage(marker);
+    identifier_markers[idx] = marker;
+  }
+
+  void ClearIdentifiers(const bool show_identifier)
+  {
+    if (!show_identifier) {
+      for (auto &[id, marker] : identifier_markers) {
+        marker->action = visualization_msgs::msg::Marker::DELETE;
+        m_marker_common->addMessage(marker);
+      }
+      identifier_markers.clear();
+    }
   }
 };
 }  // namespace rviz_plugins

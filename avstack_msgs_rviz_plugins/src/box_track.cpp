@@ -29,6 +29,10 @@ BoxTrackDisplay::BoxTrackDisplay()
     "Alpha", 1.0, "Transparency", this, SLOT(updateAlpha()));
   color_property_ = new rviz_common::properties::ColorProperty(
     "Color", Qt::yellow, "Color of bounding box", this, SLOT(updateColor()));
+  show_score_property_ = new rviz_common::properties::BoolProperty(
+    "Show Score", false, "Display score next to bounding boxes", this, SLOT(updateShowScores()));
+  show_identifier_property_ = new rviz_common::properties::BoolProperty(
+    "Show Identifier", false, "Display identifier next to bounding boxes", this, SLOT(updateShowIdentifiers()));
   color = Qt::yellow;
 }
 
@@ -37,6 +41,8 @@ BoxTrackDisplay::~BoxTrackDisplay()
   delete only_edge_property_;
   delete line_width_property_;
   delete alpha_property_;
+  delete show_score_property_;
+  delete show_identifier_property_;
 }
 
 void BoxTrackDisplay::onInitialize()
@@ -58,6 +64,8 @@ void BoxTrackDisplay::onInitialize()
   alpha = alpha_property_->getFloat();
 
   only_edge_ = only_edge_property_->getBool();
+  show_score_ = show_score_property_->getBool();
+  show_identifier_ = show_identifier_property_->getBool();
 }
 
 void BoxTrackDisplay::load(const rviz_common::Config & config)
@@ -71,9 +79,9 @@ void BoxTrackDisplay::processMessage(
 {
   latest_msg = msg;
   if (!only_edge_) {
-    showBoxes(msg);
+    showBoxes(msg, show_score_, show_identifier_);
   } else {
-    showEdges(msg);
+    showEdges(msg, show_score_, show_identifier_);
   }
 }
 
@@ -100,9 +108,9 @@ void BoxTrackDisplay::updateEdge()
   // Imediately apply attribute
   if (latest_msg) {
     if (only_edge_) {
-      showEdges(latest_msg);
+      showEdges(latest_msg, show_score_, show_identifier_);
     } else {
-      showBoxes(latest_msg);
+      showBoxes(latest_msg, show_score_, show_identifier_);
     }
   }
 }
@@ -126,6 +134,22 @@ void BoxTrackDisplay::updateAlpha()
 void BoxTrackDisplay::updateColor()
 {
   color = color_property_->getColor();
+  if (latest_msg) {
+    processMessage(latest_msg);
+  }
+}
+
+void BoxTrackDisplay::updateShowScores()
+{
+  show_score_ = show_score_property_->getBool();
+  if (latest_msg) {
+    processMessage(latest_msg);
+  }
+}
+
+void BoxTrackDisplay::updateShowIdentifiers()
+{
+  show_identifier_ = show_identifier_property_->getBool();
   if (latest_msg) {
     processMessage(latest_msg);
   }

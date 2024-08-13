@@ -64,17 +64,21 @@ private:
   ObjectStateArray::ConstSharedPtr latest_msg;
 
 protected:
-  bool only_edge_;
+  bool only_edge_, show_score_, show_id_;
   rviz_common::properties::BoolProperty * only_edge_property_;
   rviz_common::properties::FloatProperty * line_width_property_;
   rviz_common::properties::FloatProperty * alpha_property_;
   rviz_common::properties::ColorProperty * color_property_;
+  rviz_common::properties::BoolProperty * show_score_property_;
+  rviz_common::properties::BoolProperty * show_id_property_;
 
 protected Q_SLOTS:
   void updateEdge();
   void updateLineWidth();
   void updateAlpha();
   void updateColor();
+  void updateShowScores();
+  void updateShowIdentifiers();
 };
 }  // namespace rviz_plugins
 

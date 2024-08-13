@@ -1,5 +1,7 @@
 # A representation of an object state
 
+std_msgs/Header header
+
 string obj_type
 
 geometry_msgs/Pose pose

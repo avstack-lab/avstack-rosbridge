@@ -35,7 +35,7 @@ class TrackBridge:
             box3d=GeometryBridge.box3d_to_avstack(trk_msg.box, header=header),
             reference=Bridge.header_to_reference(header),
             obj_type=trk_msg.obj_type if trk_msg.obj_type else None,
-            ID_force=None if trk_msg.identifier == 0 else trk_msg.identifier,
+            ID_force=trk_msg.identifier,
             v=GeometryBridge.velocity_to_avstack(
                 velocity=trk_msg.velocity, header=header
             ),

@@ -14,12 +14,17 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "~3.10"
-# HACK: to use in other projects with their own deps
-#lib-avstack-core = {path="./submodules/lib-avstack-core", develop=true}
-#lib-avstack-api = {path="./submodules/lib-avstack-api", develop=true}
 avstack_bridge = {path="./avstack_bridge/", develop=true}
-opencv-python = "=4.5.5.64"
+# opencv-python = "=4.5.5.64"
+opencv-python = ">4.7, <4.9.0.80"
 ros2_numpy = "=0.0.2"
+
+# avstack dependencies
+lib-avstack-core = {path="./submodules/lib-avstack-core", develop=true, optional=true}
+lib-avstack-api = {path="./submodules/lib-avstack-api", develop=true, optional=true}
+
+[tool.poetry.extras]
+avstack = ["lib-avstack-core", "lib-avstack-api"]
 
 [tool.poetry.group.test.dependencies]
 snakeviz="^2.1.1"

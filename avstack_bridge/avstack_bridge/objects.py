@@ -19,33 +19,32 @@ class ObjectStateBridge:
     @staticmethod
     def objectstate_to_avstack(msg_obj: ObjectState) -> ObjectStateAV:
         if isinstance(msg_obj, ObjectState):
-            obj = msg_obj.state
             timestamp = Bridge.rostime_to_time(msg_obj.header.stamp)
             header = msg_obj.header
         else:
             raise NotImplementedError(type(msg_obj))
 
-        position, attitude = GeometryBridge.pose_to_avstack(obj.pose, header=header)
+        position, attitude = GeometryBridge.pose_to_avstack(msg_obj.pose, header=header)
 
-        obj_state = ObjectStateAV(obj_type=obj.obj_type)
+        obj_state = ObjectStateAV(obj_type=msg_obj.obj_type)
         obj_state.set(
             t=timestamp,
             position=position,
             attitude=attitude,
             velocity=GeometryBridge.velocity_to_avstack(
-                obj.twist.linear,
+                msg_obj.twist.linear,
                 header=header,
             ),
             acceleration=GeometryBridge.acceleration_to_avstack(
-                obj.linear_acceleration,
+                msg_obj.linear_acceleration,
                 header=header,
             ),
             angular_velocity=GeometryBridge.angular_vel_to_avstack(
-                obj.twist.angular,
+                msg_obj.twist.angular,
                 header=header,
             ),
             box=GeometryBridge.box3d_to_avstack(
-                obj.box,
+                msg_obj.box,
                 header=header,
             ),
         )
@@ -59,10 +58,8 @@ class ObjectStateBridge:
         header = msg_objarray.header
         obj_states = []
         for obj in msg_objarray.states:
-            msg_obj = ObjectState(header=header, state=obj)
             obj_state = cls.objectstate_to_avstack(
-                header=header,
-                msg_obj=msg_obj,
+                msg_obj=obj,
             )
             obj_states.append(obj_state)
         timestamp = Bridge.rostime_to_time(header.stamp)

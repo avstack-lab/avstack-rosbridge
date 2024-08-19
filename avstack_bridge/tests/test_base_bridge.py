@@ -1,20 +1,12 @@
 import numpy as np
 import quaternion
-from avstack.geometry import (
-    GlobalOrigin3D,
-    PassiveReferenceFrame,
-    ReferenceFrame,
-    transform_orientation,
-)
+from avstack.geometry import GlobalOrigin3D, PassiveReferenceFrame, ReferenceFrame
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import TransformStamped
 from std_msgs.msg import Header
+from tf_utilities import random_quat
 
 from avstack_bridge.base import Bridge
-
-
-def random_quat():
-    return transform_orientation(np.random.rand(3), "euler", "quat")
 
 
 def test_time_to_rostime_to_time():

@@ -2,7 +2,7 @@ import numpy as np
 import quaternion  # noqa # pylint: disable=unused-import
 from avstack.geometry import Attitude, GlobalOrigin3D, Polygon, Position
 from geometry_msgs.msg import PolygonStamped as RosPolygonStamped
-from utilities import random_quat
+from tf_utilities import random_quat
 
 from avstack_bridge.geometry import GeometryBridge
 

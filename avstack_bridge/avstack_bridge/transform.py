@@ -4,7 +4,8 @@ work in TF2 in my understanding:
 
 A transform in ROS is a way of representing a passive transformation
 that operates on the reference frame origins themselves. A transform
-with frame_id (source) A and child_frame_id (target) B specifies the transformation
+with tf.header.frame_id (target) A and tf.child_frame_id (source) B
+specifies the transformation
 that will take the source frame to the target frame.
 
 To take a point in frame A to its corresponding point in frame B,

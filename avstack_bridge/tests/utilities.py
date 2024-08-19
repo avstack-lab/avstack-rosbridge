@@ -13,11 +13,13 @@ from avstack.geometry import (
     Box3D,
     GlobalOrigin3D,
     PassiveReferenceFrame,
+    PointMatrix3D,
     Position,
     Velocity,
     q_stan_to_cam,
-    transform_orientation,
 )
+from avstack.modules.tracking import BasicBoxTrack3D
+from avstack.sensors import LidarData
 
 
 # -- calibration data
@@ -48,7 +50,24 @@ lidar_calib = LidarCalibration(ref_lidar)
 radar_calib = RadarCalibration(ref_agent, fov_horizontal=np.pi, fov_vertical=np.pi / 2)
 
 
-def get_object_global(seed, reference=GlobalOrigin3D):
+def get_point_cloud(seed: int = None, reference=GlobalOrigin3D) -> LidarData:
+    if seed is not None:
+        np.random.seed(seed)
+    frame = 0
+    timestamp = 0.0
+    calibration = LidarCalibration(reference=reference)
+    data = PointMatrix3D(x=np.random.randn(1000, 4), calibration=calibration)
+    pc_data = LidarData(
+        frame=frame,
+        timestamp=timestamp,
+        source_ID="lidar",
+        calibration=calibration,
+        data=data,
+    )
+    return pc_data
+
+
+def get_object_global(seed, reference=GlobalOrigin3D) -> VehicleState:
     np.random.seed(seed)
     pos_obj = Position(10 * np.random.rand(3), reference)
     rot_obj = Attitude(q_stan_to_cam, reference)
@@ -61,9 +80,21 @@ def get_object_global(seed, reference=GlobalOrigin3D):
     return obj
 
 
-def get_boxtrack_3d(seed, reference=GlobalOrigin3D):
-    pass
+def get_box_3d(seed, reference=GlobalOrigin3D) -> Box3D:
+    np.random.seed(seed)
+    pos_obj = Position(10 * np.random.rand(3), reference)
+    rot_obj = Attitude(q_stan_to_cam, reference)
+    box_obj = Box3D(pos_obj, rot_obj, [2, 2, 5])  # box in local coordinates
+    return box_obj
 
 
-def random_quat():
-    return transform_orientation(np.random.rand(3), "euler", "quat")
+def get_boxtrack_3d(seed, ID_track=10, reference=GlobalOrigin3D) -> BasicBoxTrack3D:
+    np.random.seed(seed)
+    box_track_1 = BasicBoxTrack3D(
+        t0=0.0,
+        box3d=get_box_3d(seed=seed, reference=reference),
+        ID_force=ID_track,
+        obj_type="car",
+        reference=reference,
+    )
+    return box_track_1

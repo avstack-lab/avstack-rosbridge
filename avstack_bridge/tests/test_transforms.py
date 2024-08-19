@@ -1,5 +1,6 @@
 import numpy as np
 import PyKDL
+from avstack.calibration import LidarCalibration
 from avstack.geometry import (
     Attitude,
     GlobalOrigin3D,
@@ -20,9 +21,19 @@ from geometry_msgs.msg import (
     Vector3Stamped,
 )
 from std_msgs.msg import Header
-from utilities import random_quat
+from tf2_ros.buffer import Buffer
+from tf_utilities import (
+    frame_to_matrix,
+    pose_to_matrix,
+    random_quat,
+    random_tf,
+    transform_to_kdl,
+)
+from utilities import get_box_3d, get_boxtrack_3d, get_point_cloud
 
-from avstack_bridge import base, geometry, transform
+from avstack_bridge import base, geometry, tracks, transform
+from avstack_bridge.geometry import GeometryBridge
+from avstack_bridge.sensors import LidarSensorBridge
 
 
 t0 = 0.0
@@ -32,59 +43,9 @@ header_world = base.Bridge.reference_to_header(passive_world_reference)
 header_agent = base.Bridge.reference_to_header(passive_agent_reference)
 
 
-def transform_to_kdl(t):
-    return PyKDL.Frame(
-        PyKDL.Rotation.Quaternion(
-            t.transform.rotation.x,
-            t.transform.rotation.y,
-            t.transform.rotation.z,
-            t.transform.rotation.w,
-        ),
-        PyKDL.Vector(
-            t.transform.translation.x,
-            t.transform.translation.y,
-            t.transform.translation.z,
-        ),
-    )
-
-
-def frame_to_matrix(frame):
-    T_frame = np.array(
-        [
-            [frame[(0, 0)], frame[(0, 1)], frame[(0, 2)], frame[(0, 3)]],
-            [frame[(1, 0)], frame[(1, 1)], frame[(1, 2)], frame[(1, 3)]],
-            [frame[(2, 0)], frame[(2, 1)], frame[(2, 2)], frame[(2, 3)]],
-            [0, 0, 0, 1],
-        ]
-    )
-    return T_frame
-
-
-def pose_to_matrix(pose):
-    p_vec = Vector3(x=pose.position.x, y=pose.position.y, z=pose.position.z)
-    tf = TransformStamped(
-        transform=Transform(rotation=pose.orientation, translation=p_vec)
-    )
-    return frame_to_matrix(transform_to_kdl(tf))
-
-
-def world_tf():
-    tf_stamped = TransformStamped(
-        header=header_world, child_frame_id="agent", transform=Transform()
-    )
-    return tf_stamped
-
-
-def random_tf():
-    dx = np.random.rand(3)
-    dq = random_quat()
-    tf_translation = Vector3(x=dx[0], y=dx[1], z=dx[2])
-    tf_rotation = Quaternion(x=dq.x, y=dq.y, z=dq.z, w=dq.w)
-    tf = Transform(translation=tf_translation, rotation=tf_rotation)
-    tf_stamped = TransformStamped(
-        header=header_world, child_frame_id="agent", transform=tf
-    )
-    return tf_stamped
+"""
+Testing basic transform inversions
+"""
 
 
 def test_invert_tf():
@@ -401,3 +362,110 @@ def test_do_transform_pose():
 """
 Testing custom transform implementations
 """
+
+
+def test_do_transform_cloud():
+    pc = get_point_cloud(seed=1)
+    tf_frame = random_tf(translation=True, rotation=True, seed=1)
+    tf_data = transform.invert_transform(tf_frame)
+    ref2 = base.Bridge.tf2_to_reference(tf_frame)
+
+    # apply transform with ros
+    pc2_ros = LidarSensorBridge.avstack_to_pc2(pc, header=tf_frame.header)
+    pc2_ros_tf = transform.do_transform_cloud(pc2_ros, tf_data)
+
+    # apply transform with avstack
+    calib2 = LidarCalibration(reference=ref2)
+    pc_avstack_tf = pc.project(calib2)
+    pc_ros_tf_avstack = LidarSensorBridge.pc2_to_avstack(pc2_ros_tf)
+
+    # check equivalence
+    assert np.allclose(pc_avstack_tf.data.x, pc_ros_tf_avstack.data.x)
+
+
+def test_do_transform_box_translate():
+    box = get_box_3d(seed=1)
+    tf_frame = random_tf(translation=True, rotation=True, seed=1)
+    tf_data = transform.invert_transform(tf_frame)
+    ref2 = base.Bridge.tf2_to_reference(tf_frame)
+
+    # apply transform with ros
+    box_ros = GeometryBridge.avstack_to_box3d(box, stamped=False)
+    box_ros_tf = transform.do_transform_box(box_ros, tf=tf_data)
+    box_ros_tf_avstack = GeometryBridge.box3d_to_avstack(
+        box_ros_tf, header=tf_data.header
+    )
+
+    # apply transform with avstack
+    box_avstack_tf = box.change_reference(ref2, inplace=False)
+
+    # check equivalence
+    assert np.allclose(box_ros_tf_avstack.size, box_avstack_tf.size)
+    assert np.allclose(box_ros_tf_avstack.center.x, box_avstack_tf.center.x)
+    assert np.allclose(box_ros_tf_avstack.attitude.q, box_avstack_tf.attitude.q)
+
+
+def test_do_transform_boxtrack():
+    box_track = get_boxtrack_3d(seed=1)
+    tf_frame = random_tf(translation=True, rotation=True, seed=1)
+    tf_data = transform.invert_transform(tf_frame)
+    ref2 = base.Bridge.tf2_to_reference(tf_frame)
+
+    # apply transformation with ros
+    box_track_ros = tracks.TrackBridge.avstack_to_boxtrack(
+        box_track, header=tf_frame.header
+    )
+    box_track_ros_tf = transform.do_transform_boxtrack(box_track_ros, tf_data)
+    box_track_ros_tf_avstack = tracks.TrackBridge.boxtrack_to_avstack(box_track_ros_tf)
+
+    # apply transformation with avstack
+    box_track_avstack_tf = box_track.change_reference(ref2, inplace=False)
+
+    # check equivalence
+    assert np.allclose(
+        box_track_ros_tf_avstack.box.center.x, box_track_avstack_tf.box.center.x
+    )
+    assert np.allclose(
+        box_track_ros_tf_avstack.box.attitude.q, box_track_avstack_tf.box.attitude.q
+    )
+
+
+"""
+Testing custom transform implementations
+"""
+
+
+def test_buffer():
+    # set tf frame
+    tf_frame = random_tf(translation=True, rotation=True, seed=1)
+    tf_buffer = Buffer()
+    tf_buffer.set_transform(tf_frame, authority="test")
+
+    # check original frame
+    tf_frame_lookup = tf_buffer.lookup_transform(
+        target_frame=tf_frame.header.frame_id,  # will be "world"
+        source_frame=tf_frame.child_frame_id,  # will be "agent"
+        time=tf_frame.header.stamp,
+    )
+    assert tf_frame.header.frame_id == tf_frame_lookup.header.frame_id == "world"
+    assert tf_frame.child_frame_id == tf_frame_lookup.child_frame_id == "agent"
+    for attr in ["x", "y", "z"]:
+        assert np.isclose(
+            getattr(tf_frame.transform.translation, attr),
+            getattr(tf_frame_lookup.transform.translation, attr),
+        )
+
+    # check frame inversion
+    tf_data = transform.invert_transform(tf_frame)
+    tf_data_lookup = tf_buffer.lookup_transform(
+        target_frame=tf_frame.child_frame_id,  # will be "agent" -- data to be transform here
+        source_frame=tf_frame.header.frame_id,  # will be "world" -- data originated here
+        time=tf_frame.header.stamp,
+    )
+    assert tf_data.header.frame_id == tf_data_lookup.header.frame_id == "agent"
+    assert tf_data.child_frame_id == tf_data_lookup.child_frame_id == "world"
+    for attr in ["x", "y", "z"]:
+        assert np.isclose(
+            getattr(tf_data.transform.translation, attr),
+            getattr(tf_data_lookup.transform.translation, attr),
+        )

@@ -24,6 +24,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ObjectStateArray.msg"
   "msg/ObjectStateArrayWithSender.msg"
   "msg/ObjectStateArrayWithSenderArray.msg"
+  "msg/TrackingMetrics.msg"
   DEPENDENCIES std_msgs geometry_msgs vision_msgs
 )
 

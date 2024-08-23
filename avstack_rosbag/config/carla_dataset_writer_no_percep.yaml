@@ -1,0 +1,15 @@
+/writer:
+  ros__parameters:
+    # dataset parameters
+    rosbag_name: "baseline_no_percep"
+    real_time_framerate: 100.0
+    dataset_path: "/data/shared/CARLA/multi-agent-trust"
+    scene_idx: 0
+    max_frames: 1000
+
+    # algorithm parameters
+    run_perception: False
+    run_tracking: False
+
+    # adversary parameters
+    attacked_agents: []

@@ -26,6 +26,7 @@ setup(
     entry_points={
         "console_scripts": [
             "carla_dataset_writer = avstack_rosbag.carla.carla_dataset_writer:main",
+            "carla_dataset_writer_with_adversary = avstack_rosbag.carla.carla_dataset_writer_with_adversary:main",
         ],
     },
 )

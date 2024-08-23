@@ -7,7 +7,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     writer_config_launch_arg = DeclareLaunchArgument(
-        "writer_config", default_value="carla_dataset_writer_no_percep.yaml"
+        "writer_config", default_value="cte_attack_1.yaml"
     )
 
     writer_config = PathJoinSubstitution(
@@ -20,7 +20,7 @@ def generate_launch_description():
 
     writer_node = Node(
         package="avstack_rosbag",
-        executable="carla_dataset_writer",
+        executable="carla_dataset_writer_with_adversary",
         name="writer",
         parameters=[writer_config],
         arguments=["--ros-args", "--log-level", "INFO"],

@@ -16,17 +16,24 @@ from .carla_dataset_loader import CarlaDatasetLoader
 
 class CarlaDatasetWriter(Node):
     def __init__(self):
-        super().__init__("carla_dataset_replayer")
+        super().__init__("carla_dataset_writer")
 
-        # parameters
+        # dataset parameters
         self.declare_parameter(
             "output_folder", "/data/shared/CARLA/rosbags/carla_dataset"
         )
+        self.declare_parameter("rosbag_name", "baseline")
         self.declare_parameter("real_time_framerate", 10.0)
         self.declare_parameter("dataset_path", "/data/shared/CARLA/multi-agent-v1")
         self.declare_parameter("scene_idx", 0)
         self.declare_parameter("i_frame_start", 4)
         self.declare_parameter("max_frames", 200)
+
+        # prerun algorithm parameters
+        self.declare_parameter("run_perception", False)
+        self.declare_parameter("run_tracking", False)
+        self.declare_parameter("run_fusion", False)
+        self.declare_parameter("run_adversary", False)
 
         # log start info
         dp = self.get_parameter("dataset_path").value
@@ -34,24 +41,30 @@ class CarlaDatasetWriter(Node):
         fr = self.get_parameter("real_time_framerate").value
         self.get_logger().info(f"Replaying dataset {dp} for max {fm} frames at {fr} Hz")
 
-        # dataset replay options
-        self.index = 0
+        # hooks
+        self.perception_hook = None
+        self.tracking_hook = None
+        self.loader = None
+
+        # timer to run dataset writing
         timer_period = 1.0 / fr
         self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.loader = CarlaDatasetLoader(
-            dataset_path=self.get_parameter("dataset_path").value,
-            scene_idx=self.get_parameter("scene_idx").value,
-            i_frame_start=self.get_parameter("i_frame_start").value,
-        )
 
         # rosbag writer
         self.writer = rosbag2_py.SequentialWriter()
-        bag_path = os.path.join(self.get_parameter("output_folder").value)
+        bag_path = os.path.join(
+            self.get_parameter("output_folder").value,
+            self.get_parameter("rosbag_name").value,
+        )
         storage_options = rosbag2_py._storage.StorageOptions(
             uri=bag_path, storage_id="sqlite3"
         )
         converter_options = rosbag2_py._storage.ConverterOptions("", "")
         self.writer.open(storage_options, converter_options)
+
+        # =============================================
+        # SET UP TOPICS
+        # =============================================
 
         # TOPIC: metadata
         self.initialized = False
@@ -86,6 +99,29 @@ class CarlaDatasetWriter(Node):
         # TOPICS FOR AGENTS
         self.topic_agent_object_gt = {}
         self.topic_agent_data = {}
+        self.topic_agent_percep = {}
+        self.topic_agent_tracks = {}
+        self.topic_fused_tracks = None
+
+    def set_perception_hook(self, hook):
+        self.perception_hook = hook
+
+    def set_tracking_hook(self, hook):
+        self.tracking_hook = hook
+
+    def set_loader(self):
+        # dataset replay options
+        self.index = 0
+        self.loader = CarlaDatasetLoader(
+            dataset_path=self.get_parameter("dataset_path").value,
+            scene_idx=self.get_parameter("scene_idx").value,
+            i_frame_start=self.get_parameter("i_frame_start").value,
+            run_perception=self.get_parameter("run_perception").value,
+            run_tracking=self.get_parameter("run_tracking").value,
+            run_fusion=self.get_parameter("run_fusion").value,
+            perception_hook=self.perception_hook,
+            tracking_hook=self.tracking_hook,
+        )
 
     def create_topic(
         self, topic_name: str, topic_type: str, serialization_format: str = "cdr"
@@ -176,17 +212,26 @@ class CarlaDatasetWriter(Node):
         self.write("tf", TFMessage(transforms=tfs_dynamic))
 
     def timer_callback(self):
+        """Gather the data on a timer callback"""
+        # set the loader if needed
+        if self.loader is None:
+            self.set_loader()
+
+        # run the loader
         (
             agent_names,
             obj_state_array,
             agent_poses,
             agent_types,
             agent_data,
+            agent_percep,
+            agent_tracks,
             agent_objects,
             sensor_poses,
+            fused_tracks,
             frame,
             timestamp,
-        ) = self.loader.load_next()
+        ) = self.loader.load_next(self.get_logger())
 
         # publish initial metadata
         if not self.initialized:
@@ -226,6 +271,55 @@ class CarlaDatasetWriter(Node):
                 # only publish when data was captured
                 if agent_data[agent][sensor]:
                     self.write(f"{agent}/{sensor}", agent_data[agent][sensor])
+
+        # publish perception data
+        for agent in agent_percep:
+            if agent not in self.topic_agent_percep:
+                self.topic_agent_percep[agent] = {}
+            for det_name in agent_percep[agent]:
+                # create publisher for detections
+                if det_name not in self.topic_agent_percep[agent]:
+                    if "detections_2d" in det_name:
+                        msg_type = "vision_msgs/msg/Detection2DArray"
+                    elif "detections_3d" in det_name:
+                        msg_type = "vision_msgs/msg/Detection3DArray"
+                    elif "fov" in det_name:
+                        msg_type = "geometry_msgs/msg/PolygonStamped"
+                    else:
+                        raise ValueError(det_name)
+                    self.create_topic(f"{agent}/{det_name}", msg_type)
+
+                # only publish when data was captured
+                if agent_percep[agent][det_name]:
+                    self.write(f"{agent}/{det_name}", agent_percep[agent][det_name])
+
+        # publish local tracking data
+        for agent in agent_tracks:
+            if agent not in self.topic_agent_tracks:
+                self.topic_agent_tracks[agent] = {}
+            for trk_name in agent_tracks[agent]:
+                # create publisher for tracks
+                if trk_name not in self.topic_agent_tracks[agent]:
+                    if "tracks_2d" in det_name:
+                        raise NotImplementedError(det_name)
+                    elif "tracks_3d" in trk_name:
+                        msg_type = "avstack_msgs/msg/BoxTrackArray"
+                    else:
+                        raise ValueError(trk_name)
+                    self.create_topic(f"{agent}/{trk_name}", msg_type)
+
+                # only publish when data was captured
+                if agent_tracks[agent][trk_name]:
+                    self.write(f"{agent}/{trk_name}", agent_tracks[agent][trk_name])
+
+        # published fused track data
+        if fused_tracks is not None:
+            if self.topic_fused_tracks is None:
+                self.create_topic(
+                    f"command_center/tracks_3d", "avstack_msgs/msg/BoxTrackArray"
+                )
+                self.topic_fused_tracks = True
+            self.write(f"command_center/tracks_3d", fused_tracks)
 
         # publish object information in agent view
         for agent in agent_objects:

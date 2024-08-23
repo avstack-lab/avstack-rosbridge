@@ -119,7 +119,7 @@ class GeometryBridge:
     ) -> Box3D:
         position, attitude = cls.pose_to_avstack(box.center, header=header)
         hwl = [box.size.z, box.size.y, box.size.x]  # TODO: is this the right order?
-        return Box3D(position=position, attitude=attitude, hwl=hwl)
+        return Box3D(position=position, attitude=attitude, hwl=hwl, where_is_t="center")
 
     @classmethod
     def box3d_array_to_avstack(

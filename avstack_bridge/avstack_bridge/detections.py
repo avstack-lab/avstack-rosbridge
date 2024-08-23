@@ -1,3 +1,4 @@
+import numpy as np
 from avstack.datastructs import DataContainer
 from avstack.modules.perception.detections import BoxDetection
 from vision_msgs.msg import Detection3D as RosDetection3D
@@ -16,9 +17,17 @@ class DetectionBridge:
 
     @staticmethod
     def detection_to_avstack(det_msg: RosDetection3D) -> BoxDetection:
+        all_scores = [res.hypothesis.score for res in det_msg.results]
+        all_types = [res.hypothesis.class_id for res in det_msg.results]
+        max_score = np.max(all_scores)
+        obj_type = all_types[np.argmax(all_scores)]
         bbox = GeometryBridge.box3d_to_avstack(det_msg.bbox, header=det_msg.header)
         det_out = BoxDetection(
-            box=bbox, source_identifier="0", reference=bbox.reference
+            box=bbox,
+            source_identifier="0",
+            reference=bbox.reference,
+            score=max_score,
+            obj_type=obj_type,
         )
         return det_out
 

@@ -1,0 +1,19 @@
+/writer:
+  ros__parameters:
+    # dataset parameters
+    rosbag_name: "baseline"
+    real_time_framerate: 100.0
+    dataset_path: "/data/shared/CARLA/multi-agent-trust"
+    scene_idx: 0
+    max_frames: 1000
+
+    # algorithm parameters
+    run_perception: True
+    run_tracking: True
+    run_fusion: True
+
+    # adversary parameters
+    attack_seed: 0
+    attacked_agents: ["agent0", "agent1"]
+    attack_manifest: ["fp", "fp"]
+    attack_propagation: ["markov", "markov"]

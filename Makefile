@@ -1,7 +1,7 @@
 NAME := avstack_rosbridge
 INSTALL_STAMP := .install.stamp
 POETRY := $(shell command -v poetry 2> /dev/null)
-PYFOLDERS := avstack_bridge avstack_msgs avstack_rosbag avstack_msgs_rviz_plugins
+PYFOLDERS := avstack_bridge avstack_msgs avstack_rosbag avstack_msgs_rviz_plugins avstack_perception avstack_tracking
 .DEFAULT_GOAL := help
 
 .PHONY: help

@@ -4,7 +4,7 @@ from glob import glob
 from setuptools import find_packages, setup
 
 
-package_name = "avstack_rosbag"
+package_name = "avstack_perception"
 
 setup(
     name=package_name,
@@ -19,11 +19,14 @@ setup(
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="spencer",
-    maintainer_email="spencer.hallyburton@duke.edu",
+    maintainer_email="20426598+roshambo919@users.noreply.github.com",
     description="TODO: Package description",
     license="TODO: License declaration",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [],
+        "console_scripts": [
+            "mmdetection3d = avstack_perception.lidar.mmdetection3d:main",
+            "lidar_concave_hull = avstack_perception.fov.lidar_concave_hull:main",
+        ],
     },
 )

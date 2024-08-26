@@ -15,7 +15,6 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "~3.10"
 avstack_bridge = {path="./avstack_bridge/", develop=true}
-# opencv-python = "=4.5.5.64"
 opencv-python = ">4.7, <4.9.0.80"
 ros2_numpy = "=0.0.2"
 

@@ -13,6 +13,11 @@ from .objects import ObjectStateBridge
 
 
 class TrackBridge:
+
+    ###################################################
+    # ROS --> AVstack methods
+    ###################################################
+
     @classmethod
     def tracks_to_avstack(
         cls, trks_msg: Union[BoxTrackArray, ObjectStateArray]
@@ -45,6 +50,10 @@ class TrackBridge:
             n_updates=trk_msg.n_updates,
             score_force=trk_msg.score,
         )
+
+    ###################################################
+    # AVstack --> ROS methods
+    ###################################################
 
     @staticmethod
     def avstack_to_boxtrack(track: BasicBoxTrack3D, header=None) -> BoxTrack:

@@ -4,6 +4,7 @@ import numpy as np
 from avstack.datastructs import DataContainer
 from avstack.environment.objects import ObjectState
 from avstack.modules.tracking.tracks import BasicBoxTrack3D
+from std_msgs.msg import Header
 
 from avstack_msgs.msg import BoxTrack, BoxTrackArray, ObjectStateArray
 
@@ -90,7 +91,7 @@ class TrackBridge:
 
     @classmethod
     def avstack_to_tracks(
-        cls, tracks: DataContainer, header=None, default_type=BoxTrackArray
+        cls, tracks: DataContainer, header: Header, default_type=BoxTrackArray
     ) -> Union[ObjectStateArray, BoxTrackArray]:
         if len(tracks) > 0:
             trks_msg = BoxTrackArray(

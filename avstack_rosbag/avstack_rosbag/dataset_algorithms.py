@@ -4,7 +4,7 @@ from typing import Dict, List
 from avstack.config import HOOKS
 from avstack.geometry import GlobalOrigin3D
 from avstack.metrics.assignment import get_instantaneous_metrics
-from avstack.modules.perception.fov_estimator import ConcaveHullLidarFOVEstimator
+from avstack.modules.perception.fov_estimator import FastRayTraceBevLidarFovEstimator
 from avstack.modules.perception.object3d import MMDetObjectDetector3D
 from avstack.modules.tracking.multisensor import MeasurementBasedMultiTracker
 from avstack.modules.tracking.tracker3d import BasicBoxTracker3D
@@ -39,7 +39,7 @@ class DatasetAlgorithms:
                         model="pointpillars",
                         dataset="carla-infrastructure",
                     ),
-                    "fov": ConcaveHullLidarFOVEstimator(max_height=5),
+                    "fov": FastRayTraceBevLidarFovEstimator(z_min=-3, z_max=3),
                 },
             }
             self.hooks["perception"] = [

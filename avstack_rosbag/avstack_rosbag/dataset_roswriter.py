@@ -13,12 +13,7 @@ from rclpy.serialization import serialize_message
 from rclpy.time import Time
 
 from avstack_rosbag.config import ROSBAG
-
-
-class ConsoleLogger:
-    @staticmethod
-    def info(msg: str):
-        print("\n" + msg)
+from avstack_rosbag.utils import ConsoleLogger
 
 
 @ROSBAG.register_module()

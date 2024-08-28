@@ -1,6 +1,6 @@
 from typing import Dict
 
-from std_msgs.msg import Header, String
+from std_msgs.msg import Header
 from tf2_msgs.msg import TFMessage
 
 from avstack_bridge.base import Bridge
@@ -34,9 +34,11 @@ class DatasetRosConverter:
         agent_name_msgs = None
         tfs = []
         tfs_static = []
+        agent_states = {}
         agent_sensor_obj_msgs = {}
         agent_sensor_data_msgs = {}
         agent_percep_msgs = {}
+        agent_fov_msgs = {}
         agent_track_msgs = {}
         agent_percep_metrics_msgs = {}
         agent_fov_metrics_msgs = {}
@@ -69,7 +71,7 @@ class DatasetRosConverter:
             "type": "avstack_msgs/msg/AgentArray",
             "data": AgentArray(
                 header=global_header,
-                agents=[String(data=agent_name) for agent_name in data_out["agents"]],
+                agents=[agent_name for agent_name in data_out["agents"]],
             ),
         }
 
@@ -103,13 +105,20 @@ class DatasetRosConverter:
             ref_name = f"world-to-{agent_name}"
             if "static" in agent.obj_type:
                 if ref_name not in self._static_tfs_published:
+                    # get regular agent frame
                     agent_ref = agent.as_reference()
                     agent_ref.from_frame = "world"
                     agent_ref.to_frame = agent_name
                     agent_ref.timestamp = 0.0  # time doesn't matter for static
                     tfs_static.append(Bridge.reference_to_tf2_stamped(agent_ref))
                     self._static_tfs_published.add(ref_name)
+
+                    # get ground projected frame for agent
+                    agent_gp_ref = agent_ref.get_ground_projected_reference()
+                    tfs_static.append(Bridge.reference_to_tf2_stamped(agent_gp_ref))
+                    self._static_tfs_published.add(ref_name + "-ground")
             else:
+                # get the regular frame
                 agent_ref = agent.as_reference()
                 agent_ref.from_frame = "world"
                 agent_ref.to_frame = agent_name
@@ -125,6 +134,14 @@ class DatasetRosConverter:
                 map_ref.timestamp = 0.0  # time doesn't matter for static
                 tfs_static.append(Bridge.reference_to_tf2_stamped(map_ref))
                 self._static_tfs_published.add(ref_map)
+
+            # -- agent states
+            agent_states[agent_name] = {
+                "type": "avstack_msgs/msg/ObjectState",
+                "data": ObjectStateBridge.avstack_to_objectstate(
+                    obj_state=agent, header=global_header
+                ),
+            }
 
             # -- sensor things
             sensor_obj_msgs = {}
@@ -282,6 +299,7 @@ class DatasetRosConverter:
             agent_sensor_obj_msgs[agent_name] = sensor_obj_msgs
             agent_sensor_data_msgs[agent_name] = sensor_data_msgs
             agent_percep_msgs[agent_name] = sensor_percep_msgs
+            agent_fov_msgs[agent_name] = sensor_fov_msgs
             agent_track_msgs[agent_name] = sensor_track_msgs
             agent_percep_metrics_msgs[agent_name] = sensor_percep_metrics_msgs
             agent_fov_metrics_msgs[agent_name] = sensor_fov_metrics_msgs
@@ -291,9 +309,11 @@ class DatasetRosConverter:
         ros_out = {
             "/object_truth": objs_msgs,
             "/agent_names": agent_name_msgs,
+            "/{}/state": agent_states,
             "/{}/{}/object_truth": agent_sensor_obj_msgs,
             "/{}/{}/data": agent_sensor_data_msgs,
             "/{}/{}/detections": agent_percep_msgs,
+            "/{}/{}/fov": agent_fov_msgs,
             "/{}/{}/tracks": agent_track_msgs,
             "/command_center/tracks": fusion_msgs,
             "/metrics/{}/{}/detections": agent_percep_metrics_msgs,

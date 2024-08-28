@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, Union
 
 
 if TYPE_CHECKING:
@@ -17,6 +17,7 @@ class DatasetLoader:
         scene_idx: int,
         i_frame_start: int = 0,
         n_frames_trim: int = 0,
+        n_frames_max: Union[int, None] = None,
     ) -> None:
         """TODO: make this a part of the scene dataset"""
         scene_manager = (
@@ -28,7 +29,9 @@ class DatasetLoader:
             scene_idx=scene_idx
         )
         self.i_frame = i_frame_start - 1  # start after initialization
-        self.n_frame_max = len(self.scene_dataset.frames) - n_frames_trim
+        self.n_frames_max = len(self.scene_dataset.frames) - n_frames_trim
+        if n_frames_max is not None:
+            self.n_frames_max = min(self.n_frames_max, n_frames_max)
 
     def __iter__(self):
         return self
@@ -40,7 +43,7 @@ class DatasetLoader:
             raise StopIteration
 
     def __len__(self):
-        return self.n_frame_max
+        return self.n_frames_max
 
     def load_next(self) -> Dict:
         """Loads the next set of data from the dataset
@@ -51,7 +54,7 @@ class DatasetLoader:
         # timestamp and frame info
         self.i_frame += 1
         objs_global_truth = None
-        if self.i_frame >= self.n_frame_max:
+        if self.i_frame >= self.n_frames_max:
             raise SystemExit
         frame = self.scene_dataset.frames[self.i_frame]
         timestamp = self.scene_dataset.get_timestamp(frame=frame)
@@ -111,13 +114,13 @@ class DatasetLoader:
 
                     # object states in sensor view
                     try:
-                        sensors_objects[sensor_name_ros] = (
-                            self.scene_dataset.get_objects(
-                                frame=frame,
-                                sensor=sensor_name,
-                                agent=agent.ID,
-                                max_dist=60,
-                            )
+                        sensors_objects[
+                            sensor_name_ros
+                        ] = self.scene_dataset.get_objects(
+                            frame=frame,
+                            sensor=sensor_name,
+                            agent=agent.ID,
+                            max_dist=60,
                         )
                     except FileNotFoundError:
                         pass

@@ -84,8 +84,11 @@ class DatasetPostprocessor:
             if time not in msgs_by_time["data"]:
                 msgs_by_time["data"][time] = x
             else:
-                # assume only static transforms can be multi-time broadcast
-                msgs_by_time["data"][time].transforms.extend(x.transforms)
+                try:
+                    # assume only static transforms can be multi-time broadcast
+                    msgs_by_time["data"][time].transforms.extend(x.transforms)
+                except AttributeError:
+                    pass
 
         return msgs_by_time
 
@@ -120,9 +123,14 @@ class DatasetPostprocessor:
             "msgs_agents_active": self._get_messages_by_time(topic_name="/agent_names"),
             "msgs_tracks_fused": self._get_messages_by_time("/command_center/tracks"),
             "msgs_objs": self._get_messages_by_time("/object_truth"),
+            "msgs_attacked_agents": self._get_messages_by_time("/attacked_agents"),
         }
         agent_names = list(self._data["msgs_agents_active"]["data"].values())[0].agents
-        self._data["agent_state"] = {
+        self._data["msgs_objs_agents"] = {
+            agent: self._get_messages_by_time("/{}/lidar0/object_truth".format(agent))
+            for agent in agent_names
+        }
+        self._data["msgs_agents_state"] = {
             agent: self._get_messages_by_time("/{}/state".format(agent))
             for agent in agent_names
         }
@@ -144,6 +152,9 @@ class DatasetPostprocessor:
         # get next timestamp
         timestamp = self._timestamps[self._idx]
         all_objs_truth = None
+        all_objs_truth_agents = {}
+        all_agents = {}
+        attacked_agents = set()
 
         # run this iteration
         agents_now = self._data["msgs_agents_active"]["data"][timestamp]
@@ -162,8 +173,18 @@ class DatasetPostprocessor:
                 self._data["msgs_tracks_fused"]["data"][timestamp]
             )
 
+            # get the set of attacked agents, if possible
+            # breakpoint()
+            attacked_agents = set(
+                [
+                    agent
+                    for agent in self._data["msgs_attacked_agents"]["data"][
+                        timestamp
+                    ].agents
+                ]
+            )
+
             # preallocate data structures
-            all_agents = {}
             all_fovs_global = {}
             all_dets_global = {}
             all_trks_global = {}
@@ -179,9 +200,16 @@ class DatasetPostprocessor:
                 except KeyError:
                     tf_agent_to_world = tf_now[w_to_a]
 
+                # store object truth in this agent
+                all_objs_truth_agents[
+                    agent
+                ] = ObjectStateBridge.objectstatearray_to_avstack(
+                    self._data["msgs_objs_agents"][agent]["data"][timestamp]
+                )
+
                 # store agent states
                 all_agents[agent] = ObjectStateBridge.objectstate_to_avstack(
-                    msg_obj=self._data["agent_state"][agent]["data"][timestamp]
+                    msg_obj=self._data["msgs_agents_state"][agent]["data"][timestamp]
                 )
 
                 # perform frame transformations in ROS
@@ -218,13 +246,15 @@ class DatasetPostprocessor:
                     tracks_agents=all_trks_global,
                     tracks_fused=fused_trks_global,
                     truths=all_objs_truth,
+                    truths_agents=all_objs_truth_agents,
+                    attacked_agents=attacked_agents,  # HACK: for security studies
                     logger=logger,
                 )
 
         # increment for next time
         self._idx += 1
 
-        return all_objs_truth
+        return all_objs_truth, all_objs_truth_agents, all_agents
 
 
 if __name__ == "__main__":

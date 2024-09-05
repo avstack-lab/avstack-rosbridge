@@ -10,7 +10,10 @@ def get_database_names(cursor):
 
 def connect(sqlite_file):
     """Make connection to an SQLite database file."""
-    conn = sqlite3.connect(sqlite_file)
+    try:
+        conn = sqlite3.connect(sqlite_file)
+    except Exception:
+        raise RuntimeError(f"Could not connect to {sqlite_file} database")
     c = conn.cursor()
     return conn, c
 

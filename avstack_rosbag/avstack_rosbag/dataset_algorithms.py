@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Dict, List
 
 from avstack.config import HOOKS
+from avstack.environment.objects import ObjectState
 from avstack.geometry import GlobalOrigin3D
 from avstack.metrics.assignment import get_instantaneous_metrics
 from avstack.modules.perception.fov_estimator import FastRayTraceBevLidarFovEstimator
@@ -64,7 +65,9 @@ class DatasetAlgorithms:
         # set up fusion algorithms
         self.run_fusion = run_fusion
         if self.run_fusion:
-            self.fusion = MeasurementBasedMultiTracker(tracker=BasicBoxTracker3D())
+            self.fusion = MeasurementBasedMultiTracker(
+                tracker=BasicBoxTracker3D(run_clustering=True)
+            )
             self.hooks["fusion"] = [
                 HOOKS.build(hook) if isinstance(hook, dict) else hook
                 for hook in fusion_hooks
@@ -78,8 +81,8 @@ class DatasetAlgorithms:
 
     def __call__(self, data_out: Dict, logger=None) -> Dict:
         """Run the algorithms on top of the simulated dataset"""
-
         # output data structure
+        attacked_agents = None
         a_s_dict = {
             a_name: {s_name: {} for s_name in data_out["agents_sensors_data"][a_name]}
             for a_name in data_out["agents"]
@@ -120,6 +123,8 @@ class DatasetAlgorithms:
 
                     # if there is sensor data
                     if sensor_data is not None:
+                        if attacked_agents is None:
+                            attacked_agents = set()
                         # -- object detection in local frame
                         model_sensor = "lidar"
                         model_type = (
@@ -143,7 +148,7 @@ class DatasetAlgorithms:
 
                         # -- run through additional perception hooks
                         for hook in self.hooks["perception"]:
-                            dets_local, fov_global = hook(
+                            dets_local, fov_global, new_attacked_agents = hook(
                                 detections=dets_local,
                                 field_of_view=fov_global,
                                 reference=sensor_ref,
@@ -151,19 +156,23 @@ class DatasetAlgorithms:
                                 sensor_name=sensor_name,
                                 logger=logger,
                             )
-
-                        # -- run metrics
-                        metrics_perception = get_instantaneous_metrics(
-                            tracks=dets_local,
-                            truths=data_out["agents_sensors_objects"][agent_name][
-                                sensor_name
-                            ],
-                            timestamp=data_out["timestamp"],
-                        )
+                            attacked_agents = attacked_agents.union(new_attacked_agents)
+                            for det in dets_local:
+                                if isinstance(det, ObjectState):
+                                    breakpoint()
 
                         # -- do conversions
                         dets_global = dets_local.apply_and_return(
                             "change_reference", GlobalOrigin3D, inplace=False
+                        )
+
+                        # -- run metrics
+                        metrics_perception = get_instantaneous_metrics(
+                            tracks=dets_global,
+                            truths=data_out["agents_sensors_objects"][agent_name][
+                                sensor_name
+                            ],
+                            timestamp=data_out["timestamp"],
                         )
 
                     else:
@@ -252,7 +261,7 @@ class DatasetAlgorithms:
                     ]
                     if agent_objs is not None:
                         metrics_tracking = get_instantaneous_metrics(
-                            tracks=tracks_local,
+                            tracks=tracks_global,
                             truths=data_out["agents_sensors_objects"][agent_name][
                                 sensor_name
                             ],
@@ -319,7 +328,7 @@ class DatasetAlgorithms:
                     logger=logger,
                 )
 
-            # -- run metrics
+            # -- run metrics before hook
             metrics_fusion = get_instantaneous_metrics(
                 tracks=fused_trks_global,
                 truths=data_out["objs_global_truth"],
@@ -339,10 +348,13 @@ class DatasetAlgorithms:
                 tracks_agents=all_trks_global,
                 tracks_fused=fused_trks_global,
                 truths=data_out["objs_global_truth"],
+                truths_agents=data_out["agents_sensors_objects"],
+                attacked_agents=attacked_agents,  # HACK: for security studies
                 logger=logger,
             )
 
         # pass the hooks out
         alg_out["hooks"] = self.hooks
-
+        if attacked_agents is not None:
+            alg_out["attacked_agents"] = attacked_agents
         return alg_out

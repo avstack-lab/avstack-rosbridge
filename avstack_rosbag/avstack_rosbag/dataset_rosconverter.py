@@ -32,6 +32,7 @@ class DatasetRosConverter:
 
         objs_msgs = None
         agent_name_msgs = None
+        attacked_agents_msgs = None
         tfs = []
         tfs_static = []
         agent_states = {}
@@ -74,6 +75,16 @@ class DatasetRosConverter:
                 agents=[agent_name for agent_name in data_out["agents"]],
             ),
         }
+
+        # attacked agents
+        if "attacked_agents" in alg_out:
+            attacked_agents_msgs = {
+                "type": "avstack_msgs/msg/AgentArray",
+                "data": AgentArray(
+                    header=global_header,
+                    agents=[agent_name for agent_name in alg_out["attacked_agents"]],
+                ),
+            }
 
         # centralized fusion (**in global**)
         if "fusion" in alg_out:
@@ -174,6 +185,7 @@ class DatasetRosConverter:
                 )
 
                 # -- sensor objects
+                # HACK: these are actually kept in global
                 if (
                     data_out["agents_sensors_objects"][agent_name][sensor_name]
                     is not None
@@ -184,7 +196,7 @@ class DatasetRosConverter:
                             obj_states=data_out["agents_sensors_objects"][agent_name][
                                 sensor_name
                             ],
-                            header=sensor_header,
+                            header=global_header,
                         ),
                     }
 
@@ -309,6 +321,7 @@ class DatasetRosConverter:
         ros_out = {
             "/object_truth": objs_msgs,
             "/agent_names": agent_name_msgs,
+            "/attacked_agents": attacked_agents_msgs,
             "/{}/state": agent_states,
             "/{}/{}/object_truth": agent_sensor_obj_msgs,
             "/{}/{}/data": agent_sensor_data_msgs,

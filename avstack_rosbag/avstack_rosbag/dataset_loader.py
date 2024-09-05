@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from avapi._dataset import BaseSceneManager
 
 from avstack.config import DATASETS
+from avstack.geometry import GlobalOrigin3D
 
 from avstack_rosbag.config import ROSBAG
 
@@ -122,6 +123,9 @@ class DatasetLoader:
                             agent=agent.ID,
                             max_dist=60,
                         )
+                        # we need to keep these in the global frame, unfortunately
+                        for obj in sensors_objects[sensor_name_ros]:
+                            obj.change_reference(GlobalOrigin3D, inplace=True)
                     except FileNotFoundError:
                         pass
                 else:

@@ -23,7 +23,8 @@ class DetectionBridge:
         obj_type = all_types[np.argmax(all_scores)]
         bbox = GeometryBridge.box3d_to_avstack(det_msg.bbox, header=det_msg.header)
         det_out = BoxDetection(
-            box=bbox,
+            data=bbox,
+            noise=None,
             source_identifier="0",
             reference=bbox.reference,
             score=max_score,

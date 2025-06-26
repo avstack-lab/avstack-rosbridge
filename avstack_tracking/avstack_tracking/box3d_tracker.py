@@ -62,7 +62,7 @@ class BoxTracker(Node):
             self.get_logger().info("Calling reset on box tracker!")
             self.model.reset()
 
-    def dets_callback(self, dets_msg: Detection3DArray) -> BoxTrackArray:
+    def dets_callback(self, dets_msg: Detection3DArray):
         # perform reference conversion if needed
         if self.tracking_in_global:
             try:

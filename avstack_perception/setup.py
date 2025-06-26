@@ -26,6 +26,7 @@ setup(
     entry_points={
         "console_scripts": [
             "mmdetection3d = avstack_perception.lidar.mmdetection3d:main",
+            "laserscan_box_detection = avstack_perception.lidar.laserscan_box_detection:main",
             "lidar_concave_hull = avstack_perception.fov.lidar_concave_hull:main",
         ],
     },

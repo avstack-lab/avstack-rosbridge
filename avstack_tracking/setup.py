@@ -26,7 +26,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "boxtracker3d = avstack_tracking.boxtracker3d:main",
+            "box3d_tracker = avstack_tracking.box3d_tracker:main",
             "multi_platform_boxtracker3d = avstack_tracking.multi_platform_boxtracker3d:main",
             "metrics_evaluator = avstack_tracking.metrics_evaluator:main",
             "metrics_visualizer = avstack_tracking.metrics_visualizer:main",

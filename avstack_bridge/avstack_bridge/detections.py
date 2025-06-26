@@ -16,7 +16,10 @@ class DetectionBridge:
     ##########################################
 
     @staticmethod
-    def detection_to_avstack(det_msg: RosDetection3D) -> BoxDetection:
+    def detection_to_avstack(
+        det_msg: RosDetection3D,
+        noise: np.ndarray = np.array([1, 1, 1, 0.25, 0.25, 0.25]) ** 2,
+    ) -> BoxDetection:
         all_scores = [res.hypothesis.score for res in det_msg.results]
         all_types = [res.hypothesis.class_id for res in det_msg.results]
         max_score = np.max(all_scores)
@@ -24,7 +27,7 @@ class DetectionBridge:
         bbox = GeometryBridge.box3d_to_avstack(det_msg.bbox, header=det_msg.header)
         det_out = BoxDetection(
             data=bbox,
-            noise=None,
+            noise=noise,
             source_identifier="0",
             reference=bbox.reference,
             score=max_score,
@@ -33,10 +36,10 @@ class DetectionBridge:
         return det_out
 
     @staticmethod
-    def detectionarray_to_avstack(dets_msg: RosDetection3DArray) -> DataContainer:
+    def detectionarray_to_avstack(dets_msg: RosDetection3DArray, noise: np.ndarray) -> DataContainer:
         timestamp = Bridge.rostime_to_time(dets_msg.header.stamp)
         dets = [
-            DetectionBridge.detection_to_avstack(det) for det in dets_msg.detections
+            DetectionBridge.detection_to_avstack(det, noise=noise) for det in dets_msg.detections
         ]
         return DataContainer(
             frame=0, timestamp=timestamp, data=dets, source_identifier="0"

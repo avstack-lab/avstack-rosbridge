@@ -98,9 +98,7 @@ class LaserScanBoxDetection(Node):
         
         # initialize perception model
         self.model = ObjectDetectionClusterer()
-        self.get_logger().info(
-            f"Initialized DBSCAN clusterer"
-        )
+        self.get_logger().info("Initialized DBSCAN clusterer")
 
         # qos profile for pub/sub
         qos_profile = qos.QoSProfile(

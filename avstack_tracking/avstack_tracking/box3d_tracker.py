@@ -1,11 +1,14 @@
 import rclpy
-from avstack.modules.tracking.tracker3d import BasicBoxTracker3D
 from rclpy.node import Node
+from rclpy import qos
 from std_msgs.msg import String
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from vision_msgs.msg import Detection3DArray
+import numpy as np
+
+from avstack.modules.tracking.tracker3d import BasicBoxTracker3D
 
 from avstack_bridge import Bridge
 from avstack_bridge.detections import DetectionBridge
@@ -22,12 +25,13 @@ class BoxTracker(Node):
         # initialize model
         self.tracking_in_global = self.get_parameter("tracking_in_global").value
         self.model = BasicBoxTracker3D(check_reference=False)
+        self.get_logger().info("Initialized BasicBoxTracker3D")
 
-        qos = rclpy.qos.QoSProfile(
-            history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
+        qos_profile = qos.QoSProfile(
+            history=qos.QoSHistoryPolicy.KEEP_LAST,
             depth=10,
-            reliability=rclpy.qos.QoSReliabilityPolicy.RELIABLE,
-            durability=rclpy.qos.QoSDurabilityPolicy.VOLATILE,
+            reliability=qos.QoSReliabilityPolicy.RELIABLE,
+            durability=qos.QoSDurabilityPolicy.VOLATILE,
         )
 
         # listen to transform information
@@ -39,7 +43,7 @@ class BoxTracker(Node):
             String,
             "/initialization",
             self.init_callback,
-            qos_profile=qos,
+            qos_profile=qos_profile,
         )
 
         # subscribe to 3d detections
@@ -47,14 +51,14 @@ class BoxTracker(Node):
             Detection3DArray,
             "detections_3d",
             self.dets_callback,
-            qos_profile=qos,
+            qos_profile=qos_profile,
         )
 
         # publish 3d tracks
         self.publisher_trks = self.create_publisher(
             BoxTrackArray,
             "tracks_3d",
-            qos_profile=qos,
+            qos_profile=qos_profile,
         )
 
     def init_callback(self, init_msg: String) -> None:
@@ -85,7 +89,10 @@ class BoxTracker(Node):
             dets_msg_tf = dets_msg
 
         # perform tracking
-        dets_avstack = DetectionBridge.detectionarray_to_avstack(dets_msg_tf)
+        dets_avstack = DetectionBridge.detectionarray_to_avstack(
+            dets_msg=dets_msg_tf,
+            noise=np.array([1, 1, 1, 0.25, 0.25, 0.25]) ** 2,  # TODO: pull this out
+        )
         platform = Bridge.header_to_reference(dets_msg_tf.header)
         trks_avstack = self.model(
             dets_avstack, platform=platform, check_reference=False

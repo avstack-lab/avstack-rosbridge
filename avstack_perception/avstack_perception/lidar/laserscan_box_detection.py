@@ -178,7 +178,7 @@ class LaserScanBoxDetection(Node):
 
         # convert to ros types and publish
         boxes_3d_ros = DetectionBridge.avstack_to_detectionarray(
-            boxes_3d, header=msg.header
+            boxes_3d, det_is_2d=False, header=msg.header
         )
         self.publisher_dets.publish(boxes_3d_ros)
 

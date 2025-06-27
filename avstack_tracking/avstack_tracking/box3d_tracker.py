@@ -1,14 +1,13 @@
+import numpy as np
 import rclpy
-from rclpy.node import Node
+from avstack.modules.tracking.tracker3d import BasicBoxTracker3D
 from rclpy import qos
+from rclpy.node import Node
 from std_msgs.msg import String
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from vision_msgs.msg import Detection3DArray
-import numpy as np
-
-from avstack.modules.tracking.tracker3d import BasicBoxTracker3D
 
 from avstack_bridge import Bridge
 from avstack_bridge.detections import DetectionBridge

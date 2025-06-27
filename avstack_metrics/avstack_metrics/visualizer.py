@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 
 import os
-from functools import partial
 import threading
 from collections import deque
+from functools import partial
 
 #################################################################
 # fmt: off

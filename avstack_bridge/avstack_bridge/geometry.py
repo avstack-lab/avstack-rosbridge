@@ -5,6 +5,7 @@ from avstack.geometry import (
     Acceleration,
     AngularVelocity,
     Attitude,
+    Box2D,
     Box3D,
     Polygon,
     Position,
@@ -24,8 +25,12 @@ from geometry_msgs.msg import QuaternionStamped as RosQuaternionStamped
 from geometry_msgs.msg import Vector3 as RosVector3
 from geometry_msgs.msg import Vector3Stamped as RosVector3Stamped
 from std_msgs.msg import Header
+from vision_msgs.msg import BoundingBox2D as RosBoundingBox2D
+from vision_msgs.msg import BoundingBox2DArray as RosBoundingBox2DArray
 from vision_msgs.msg import BoundingBox3D as RosBoundingBox3D
 from vision_msgs.msg import BoundingBox3DArray as RosBoundingBox3DArray
+from vision_msgs.msg import Point2D as RosPoint2D
+from vision_msgs.msg import Pose2D as RosPose2D
 
 from .base import Bridge
 
@@ -112,6 +117,25 @@ class GeometryBridge:
         return cls._to_avstack(aclass=AngularVelocity, data=avel, header=header)
 
     @classmethod
+    def box2d_to_avstack(
+        cls,
+        box: RosBoundingBox2D,
+        header: Union[Header, None],
+    ) -> Box2D:
+
+        # The 2D position (in pixels) and orientation of the bounding box center.
+        xc, yc = box.center.x, box.center.y
+        yaw = box.center.theta
+        width, height = box.size_x, box.size_y
+
+        # convert to avstack box2d
+        # TODO: add support for calibration
+        return Box2D(
+            box2d=[xc - width / 2, yc - height / 2, width, height],
+            calibration=None,
+        )
+
+    @classmethod
     def box3d_to_avstack(
         cls,
         box: RosBoundingBox3D,
@@ -122,15 +146,31 @@ class GeometryBridge:
         return Box3D(position=position, attitude=attitude, hwl=hwl, where_is_t="center")
 
     @classmethod
+    def box2d_array_to_avstack(
+        cls,
+        boxes: RosBoundingBox2DArray,
+    ) -> List[Box2D]:
+        header = boxes.header
+        boxes_filter = [
+            box if isinstance(box, RosBoundingBox2D) else box.box for box in boxes.boxes
+        ]
+        boxes_av = [
+            cls.box2d_to_avstack(box=box, header=header) for box in boxes_filter
+        ]
+        return boxes_av
+
+    @classmethod
     def box3d_array_to_avstack(
         cls,
         boxes: RosBoundingBox3DArray,
     ) -> List[Box3D]:
         header = boxes.header
-        boxes = [
+        boxes_filter = [
             box if isinstance(box, RosBoundingBox3D) else box.box for box in boxes.boxes
         ]
-        boxes_av = [cls.box3d_to_avstack(box=box, header=header) for box in boxes]
+        boxes_av = [
+            cls.box3d_to_avstack(box=box, header=header) for box in boxes_filter
+        ]
         return boxes_av
 
     @classmethod
@@ -237,6 +277,21 @@ class GeometryBridge:
         return RosVector3()
 
     @classmethod
+    def avstack_to_box2d(cls, box: Box2D, stamped: bool) -> RosBoundingBox2D:
+        if stamped:
+            raise NotImplementedError("Cannot do stamped box yet")
+        if box:
+            center = RosPose2D(
+                position=RosPoint2D(x=float(box.center[0]), y=float(box.center[1])),
+                theta=0.0,
+            )
+            size_x = float(box.w)
+            size_y = float(box.h)
+            return RosBoundingBox2D(center=center, size_x=size_x, size_y=size_y)
+        else:
+            return RosBoundingBox2D()
+
+    @classmethod
     def avstack_to_box3d(cls, box: Box3D, stamped: bool) -> RosBoundingBox3D:
         if stamped:
             raise NotImplementedError("Cannot do stamped box yet")
@@ -250,6 +305,23 @@ class GeometryBridge:
             return RosBoundingBox3D()
 
     @classmethod
+    def avstack_to_box2d_array(
+        cls,
+        boxes: List[Box2D],
+        header=None,
+    ) -> RosBoundingBox2DArray:
+        if len(boxes) == 0:
+            return RosBoundingBox2DArray()
+        else:
+            if not header:
+                header = Bridge.reference_to_header(boxes[0].reference)
+        boxes_filter = [
+            box if isinstance(box, Box2D) else box.box2d for box in boxes
+        ]  # HACK
+        boxes_ros = [cls.avstack_to_box2d(box, stamped=False) for box in boxes_filter]
+        return RosBoundingBox2DArray(header=header, boxes=boxes_ros)
+
+    @classmethod
     def avstack_to_box3d_array(
         cls,
         boxes: List[Box3D],
@@ -260,8 +332,10 @@ class GeometryBridge:
         else:
             if not header:
                 header = Bridge.reference_to_header(boxes[0].reference)
-        boxes = [box if isinstance(box, Box3D) else box.box for box in boxes]  # HACK
-        boxes_ros = [cls.avstack_to_box3d(box, stamped=False) for box in boxes]
+        boxes_filter = [
+            box if isinstance(box, Box3D) else box.box for box in boxes
+        ]  # HACK
+        boxes_ros = [cls.avstack_to_box3d(box, stamped=False) for box in boxes_filter]
         return RosBoundingBox3DArray(header=header, boxes=boxes_ros)
 
     @classmethod

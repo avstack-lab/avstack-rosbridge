@@ -1,16 +1,15 @@
-import rclpy
-from rclpy.node import Node
-from rclpy import qos
 from typing import List
+
 import numpy as np
-from sklearn.cluster import DBSCAN
-
-from sensor_msgs.msg import LaserScan
-from vision_msgs.msg import Detection3DArray
-
-from avstack.geometry import Box3D, Position, Attitude
+import rclpy
 from avstack.datastructs import DataContainer
+from avstack.geometry import Attitude, Box3D, Position
 from avstack.modules.perception.detections import BoxDetection
+from rclpy import qos
+from rclpy.node import Node
+from sensor_msgs.msg import LaserScan
+from sklearn.cluster import DBSCAN
+from vision_msgs.msg import Detection3DArray
 
 from avstack_bridge import Bridge
 from avstack_bridge.detections import DetectionBridge
@@ -95,7 +94,7 @@ class ObjectDetectionClusterer:
 class LaserScanBoxDetection(Node):
     def __init__(self, verbose: bool = False):
         super().__init__("perception")
-        
+
         # initialize perception model
         self.model = ObjectDetectionClusterer()
         self.get_logger().info("Initialized DBSCAN clusterer")
@@ -111,7 +110,7 @@ class LaserScanBoxDetection(Node):
         # subscribe to lidar laser scan
         self.subscriber_lidar = self.create_subscription(
             LaserScan,
-            '/scan',
+            "/scan",
             self.lidar_callback,
             qos_profile=qos_profile,
         )
@@ -123,22 +122,24 @@ class LaserScanBoxDetection(Node):
             qos_profile=qos_profile,
         )
 
-    def _cluster_to_3d_box_detection(self, cluster: Cluster, platform, height: float=0.5) -> BoxDetection:
+    def _cluster_to_3d_box_detection(
+        self, cluster: Cluster, platform, height: float = 0.5
+    ) -> BoxDetection:
         # build 3d box
         width = np.max(cluster.points[:, 0]) - np.min(cluster.points[:, 0])
         length = np.max(cluster.points[:, 1]) - np.min(cluster.points[:, 1])
         box = Box3D(
             position=Position(
-                x=np.array([
-                    cluster.centroid[0],
-                    cluster.centroid[1],
-                    0,
-                ]),
-                reference=platform),
-            attitude=Attitude(
-                q=np.quaternion(1),
-                reference=platform
+                x=np.array(
+                    [
+                        cluster.centroid[0],
+                        cluster.centroid[1],
+                        0,
+                    ]
+                ),
+                reference=platform,
             ),
+            attitude=Attitude(q=np.quaternion(1), reference=platform),
             hwl=[height, width, length],  # TODO set this more intelligently
             where_is_t="center",
             obj_type="car",

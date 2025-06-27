@@ -1,5 +1,6 @@
 import rclpy
 from avstack.modules.perception.object3d import MMDetObjectDetector3D
+from rclpy import qos
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2 as LidarMsg
 from tf2_ros import TransformException
@@ -26,15 +27,15 @@ class LidarPerception(Node):
             dataset=param_dataset,
         )
         self.get_logger().info(
-            f"Initialized {param_model} model on {param_dataset} dataset"
+            f"Initialized {param_model} model on {param_dataset} dataset (MMDet3D)"
         )
         self.verbose = verbose
 
-        qos = rclpy.qos.QoSProfile(
-            history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
+        qos_profile = qos.QoSProfile(
+            history=qos.QoSHistoryPolicy.KEEP_LAST,
             depth=10,
-            reliability=rclpy.qos.QoSReliabilityPolicy.RELIABLE,
-            durability=rclpy.qos.QoSDurabilityPolicy.VOLATILE,
+            reliability=qos.QoSReliabilityPolicy.RELIABLE,
+            durability=qos.QoSDurabilityPolicy.VOLATILE,
         )
 
         # listen to transform information
@@ -43,17 +44,17 @@ class LidarPerception(Node):
 
         # subscribe to point cloud in the same namespace
         self.subscriber_pc = self.create_subscription(
-            LidarMsg, "point_cloud", self.pc_callback, qos_profile=qos
+            LidarMsg, "point_cloud", self.pc_callback, qos_profile=qos_profile
         )
 
         # publish lidar detections
         self.publisher_dets = self.create_publisher(
             Detection3DArray,
             "detections_3d",
-            qos_profile=qos,
+            qos_profile=qos_profile,
         )
 
-    def pc_callback(self, pc_msg: LidarMsg) -> Detection3DArray:
+    def pc_callback(self, pc_msg: LidarMsg):
         """Run perception model when we receive lidar data
 
         We need to obtain the actual reference frame for the lidar sensor

@@ -1,40 +1,61 @@
-[tool.poetry]
-name = "avstack_bridge_ros"
+[project]
+name = "avstack-rosbridge"
 version = "0.1.0-alpha.1"
 description = "AVstack ROS bridge"
-authors = ["Spencer Hallyburton <spencer@shally.dev>"]
+authors = [{ name = "Spencer Hallyburton", email = "spencer@shally.dev" }]
+requires-python = ">=3.10,<3.11"
 readme = "README.md"
-license = "MIT License"
-repository = "https://github.com/avstack-lab/avstack-rosbridge.git"
-keywords = ["computer vision", "perception", "tracking", "replay"]
+license = "MIT"
+keywords = [
+    "computer vision",
+    "perception",
+    "tracking",
+    "replay",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
 ]
+dependencies = [
+    "avstack_bridge",
+    "opencv-python>4.7, <4.9.0.80",
+    "ros2_numpy==0.0.2",
+]
 
-[tool.poetry.dependencies]
-python = "~3.10"
-avstack_bridge = {path="./avstack_bridge/", develop=true}
-opencv-python = ">4.7, <4.9.0.80"
-ros2_numpy = "=0.0.2"
+[project.optional-dependencies]
+avstack = [
+    "avstack-core",
+    "avstack-api",
+]
 
-# avstack dependencies
-lib-avstack-core = {path="./submodules/lib-avstack-core", develop=true, optional=true}
-lib-avstack-api = {path="./submodules/lib-avstack-api", develop=true, optional=true}
+[project.urls]
+Repository = "https://github.com/avstack-lab/avstack-rosbridge.git"
 
-[tool.poetry.extras]
-avstack = ["lib-avstack-core", "lib-avstack-api"]
+[dependency-groups]
+test = [
+    "snakeviz>=2.1.1,<3",
+    "pytest>=7,<8",
+    "pytest-cov>=4,<5",
+    "bandit~=1.7",
+    "black[jupyter]~=22.12.0",
+    "mypy>=0,<1",
+    "isort~=5.11",
+    "flake8~=5.0",
+    "autoflake>=1,<2",
+]
 
-[tool.poetry.group.test.dependencies]
-snakeviz="^2.1.1"
-pytest = "^7"
-pytest-cov = "^4"
-bandit = "^1.7"
-black = {extras = ["jupyter"], version = "~22.12.0"}
-mypy = "^0"
-isort = "^5.11"
-flake8 = "^5.0"
-autoflake = "^1"
+[tool.uv]
+default-groups = ["test"]
+package = false
+
+[tool.uv.sources]
+avstack_bridge = { path = "./avstack_bridge/", editable = true }
+avstack-core = { path = "./submodules/avstack-core", editable = true }
+avstack-api = { path = "./submodules/avstack-api", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -43,9 +64,3 @@ testpaths = [
     "tests",
     "integration",
 ]
-
-[build-system]
-requires = [
-    "poetry-core",
-]
-build-backend = "poetry.core.masonry.api"

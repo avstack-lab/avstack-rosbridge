@@ -1,15 +1,14 @@
 import rclpy
-from rclpy.node import Node
+from avstack.geometry import GlobalOrigin2D
+from avstack.modules.tracking.tracker3d import BasicXyzTracker
 from rclpy import qos
+from rclpy.node import Node
 from std_msgs.msg import String
 from vision_msgs.msg import Detection3DArray
 
 from avstack_bridge.detections import DetectionBridge
 from avstack_bridge.tracks import TrackBridge
 from avstack_msgs.msg import XyzTrackArray
-
-from avstack.geometry import GlobalOrigin2D
-from avstack.modules.tracking.tracker3d import BasicXyzTracker
 
 
 class ClusterTracker(Node):
@@ -73,9 +72,7 @@ class ClusterTracker(Node):
         trks_avstack = self.model(
             dets_avstack, platform=platform, check_reference=False
         )
-        trks_ros = TrackBridge.avstack_to_tracks(
-            trks_avstack, header=dets_msg.header
-        )
+        trks_ros = TrackBridge.avstack_to_tracks(trks_avstack, header=dets_msg.header)
         trks_ros_local = trks_ros
         self.publisher_trks.publish(trks_ros_local)
 

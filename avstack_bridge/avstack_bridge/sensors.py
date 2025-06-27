@@ -21,15 +21,24 @@ class CameraSensorBridge:
         frame = 0
         ros_frame = msg.header.frame_id
         timestamp = Bridge.rostime_to_time(msg.header.stamp)
+
+        # convert image to numpy array
+        data = cv_bridge.imgmsg_to_cv2(msg)
+
+        # TODO: add support for calibration message
         if calibration is None:
             reference = Bridge.header_to_reference(msg.header)
-            calibration = CameraCalibration(reference=reference, P=None, img_shape=None)
+            calibration = CameraCalibration(
+                reference=reference, P=np.zeros((3, 4)), img_shape=data.shape
+            )
+
+        # package up image data
         img_data = sensors.ImageData(
             frame=frame,
             timestamp=timestamp,
             source_ID=ros_frame,
             calibration=calibration,
-            data=msg.data,
+            data=data,
         )
 
         return img_data

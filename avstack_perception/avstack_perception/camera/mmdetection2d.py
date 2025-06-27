@@ -24,7 +24,7 @@ class CameraPerception(Node):
             model=param_model,
             dataset=param_dataset,
             epoch="latest",
-            threshold=0.5,
+            threshold=0.4,
             gpu=0,
         )
         self.get_logger().info(

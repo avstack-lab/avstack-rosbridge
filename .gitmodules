@@ -6,4 +6,4 @@
 	url = https://github.com/avstack-lab/lib-avstack-api
 [submodule "submodules/detection_visualizer"]
 	path = submodules/detection_visualizer
-	url = https://github.com/ros2/detection_visualizer
+	url = https://github.com/cpsl-research/detection_visualizer

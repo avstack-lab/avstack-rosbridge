@@ -1,6 +1,7 @@
 from typing import List, Tuple, Union
 
 import numpy as np
+from avstack.calibration import CameraCalibration
 from avstack.geometry import (
     Acceleration,
     AngularVelocity,
@@ -123,16 +124,23 @@ class GeometryBridge:
         header: Union[Header, None],
     ) -> Box2D:
 
+        # get reference from header
+        reference = Bridge.header_to_reference(header=header)
+
         # The 2D position (in pixels) and orientation of the bounding box center.
-        xc, yc = box.center.x, box.center.y
+        xc, yc = box.center.position.x, box.center.position.y
         yaw = box.center.theta
         width, height = box.size_x, box.size_y
 
         # convert to avstack box2d
         # TODO: add support for calibration
         return Box2D(
-            box2d=[xc - width / 2, yc - height / 2, width, height],
-            calibration=None,
+            box2d=[xc - width / 2, yc - height / 2, xc + width / 2, yc + height / 2],
+            calibration=CameraCalibration(
+                reference=reference,
+                P=np.zeros((3, 4)),
+                img_shape=(width, height),
+            ),
         )
 
     @classmethod

@@ -405,17 +405,17 @@ def test_do_transform_box_translate():
     assert np.allclose(box_ros_tf_avstack.attitude.q, box_avstack_tf.attitude.q)
 
 
-def test_do_transform_boxtrack():
+def test_do_transform_BoxTrack3D():
     box_track = get_boxtrack_3d(seed=1)
     tf_frame = random_tf(translation=True, rotation=True, seed=1)
     tf_data = transform.invert_transform(tf_frame)
     ref2 = base.Bridge.tf2_to_reference(tf_frame)
 
     # apply transformation with ros
-    box_track_ros = tracks.TrackBridge.avstack_to_boxtrack(
+    box_track_ros = tracks.TrackBridge.avstack_to_BoxTrack3D(
         box_track, header=tf_frame.header
     )
-    box_track_ros_tf = transform.do_transform_boxtrack(box_track_ros, tf_data)
+    box_track_ros_tf = transform.do_transform_BoxTrack3D(box_track_ros, tf_data)
     box_track_ros_tf_avstack = tracks.TrackBridge.boxtrack_to_avstack(box_track_ros_tf)
 
     # apply transformation with avstack

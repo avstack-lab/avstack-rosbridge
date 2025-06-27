@@ -1,3 +1,3 @@
 std_msgs/Header header
 
-BoxTrack[] tracks
+BoxTrack2D[] tracks

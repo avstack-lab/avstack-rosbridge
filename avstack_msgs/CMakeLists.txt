@@ -16,15 +16,19 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AssignmentMetrics.msg"
   "msg/AgentArray.msg"
-  "msg/BoxTrack.msg"
-  "msg/BoxTrackArray.msg"
-  "msg/BoxTrackArrayWithSender.msg"
-  "msg/BoxTrackArrayWithSenderArray.msg"
+  "msg/BoxTrack2D.msg"
+  "msg/BoxTrack2DArray.msg"
+  "msg/BoxTrack3D.msg"
+  "msg/BoxTrack3DArray.msg"
+  "msg/BoxTrack3DArrayWithSender.msg"
+  "msg/BoxTrack3DArrayWithSenderArray.msg"
   "msg/IdList.msg"
   "msg/ObjectState.msg"
   "msg/ObjectStateArray.msg"
   "msg/ObjectStateArrayWithSender.msg"
   "msg/ObjectStateArrayWithSenderArray.msg"
+  "msg/XyzTrack.msg"
+  "msg/XyzTrackArray.msg"
   DEPENDENCIES std_msgs geometry_msgs vision_msgs
 )
 

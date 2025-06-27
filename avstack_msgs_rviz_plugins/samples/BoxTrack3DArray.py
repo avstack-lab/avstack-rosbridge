@@ -24,7 +24,7 @@ from rclpy.node import Node
 from std_msgs.msg import Header
 from vision_msgs.msg import BoundingBox3D
 
-from avstack_msgs.msg import BoxTrack, BoxTrackArray
+from avstack_msgs.msg import BoxTrack3D, BoxTrack3DArray
 
 
 def quaternion_about_axis(angle, axis):
@@ -37,10 +37,10 @@ def quaternion_about_axis(angle, axis):
     return x, y, z, w
 
 
-class PubBoxTrackArray(Node):
+class PubBoxTrack3DArray(Node):
     def __init__(self):
         super().__init__("pub_box_track_array_sample")
-        self._pub = self.create_publisher(BoxTrackArray, "box_track_array", 10)
+        self._pub = self.create_publisher(BoxTrack3DArray, "box_track_array", 10)
         self._timer = self.create_timer(0.1, self.pub_sample)
         self._counter = 0
         self._header = Header()
@@ -55,7 +55,7 @@ class PubBoxTrackArray(Node):
         if self._counter % 10 == 0:
             self._counter = 0
 
-        trk_array = BoxTrackArray()
+        trk_array = BoxTrack3DArray()
         trk_array.header = self._header
         for i in range(5):
             for j in range(5):
@@ -82,7 +82,7 @@ class PubBoxTrackArray(Node):
                 velocity.z = 0.0
 
                 # Create a single ObjectState message
-                trk = BoxTrack()
+                trk = BoxTrack3D()
                 trk.obj_type = "vehicle"
                 trk.box = bbox
                 trk.velocity = velocity
@@ -97,7 +97,7 @@ class PubBoxTrackArray(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = PubBoxTrackArray()
+    node = PubBoxTrack3DArray()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

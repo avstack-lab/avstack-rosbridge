@@ -4,3 +4,6 @@
 [submodule "submodules/lib-avstack-api"]
 	path = submodules/avstack-api
 	url = https://github.com/avstack-lab/lib-avstack-api
+[submodule "submodules/detection_visualizer"]
+	path = submodules/detection_visualizer
+	url = https://github.com/ros2/detection_visualizer

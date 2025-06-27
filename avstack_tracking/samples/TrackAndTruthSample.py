@@ -17,7 +17,7 @@ from std_msgs.msg import Header
 
 from avstack_bridge.objects import ObjectStateBridge
 from avstack_bridge.tracks import TrackBridge
-from avstack_msgs.msg import BoxTrackArray, ObjectStateArray
+from avstack_msgs.msg import BoxTrack3DArray, ObjectStateArray
 
 
 def get_object_global(seed, reference=GlobalOrigin3D):
@@ -33,7 +33,7 @@ def get_object_global(seed, reference=GlobalOrigin3D):
     return obj
 
 
-def object_to_boxtrack(obj: ObjectState) -> BasicBoxTrack3D:
+def object_to_BoxTrack3D(obj: ObjectState) -> BasicBoxTrack3D:
     box_noisy = obj.box3d
     box_noisy.position += np.random.randn(3)
     track = BasicBoxTrack3D(
@@ -49,7 +49,7 @@ def object_to_boxtrack(obj: ObjectState) -> BasicBoxTrack3D:
 class TrackAndTruthPublisher(Node):
     def __init__(self):
         super().__init__("track_and_truth_publisher")
-        self.publisher_tracks = self.create_publisher(BoxTrackArray, "tracks", 10)
+        self.publisher_tracks = self.create_publisher(BoxTrack3DArray, "tracks", 10)
         self.publisher_truths = self.create_publisher(ObjectStateArray, "truths", 10)
         self._timer = self.create_timer(0.1, self.publish_loop)
 
@@ -67,7 +67,7 @@ class TrackAndTruthPublisher(Node):
         # create track messages
         np.random.seed(None)
         n_tracks_by_truths = 8
-        tracks = [object_to_boxtrack(obj) for obj in truths[:n_tracks_by_truths]]
+        tracks = [object_to_BoxTrack3D(obj) for obj in truths[:n_tracks_by_truths]]
         msg_tracks = TrackBridge.avstack_to_tracks(tracks, header=header)
         self.publisher_tracks.publish(msg_tracks)
 

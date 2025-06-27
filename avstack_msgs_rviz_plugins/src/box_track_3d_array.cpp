@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <avstack_msgs_rviz_plugins/box_track_array.hpp>
+#include <avstack_msgs_rviz_plugins/box_track_3d_array.hpp>
 
 #include <memory>
 
 namespace rviz_plugins
 {
 
-BoxTrackArrayDisplay::BoxTrackArrayDisplay()
+BoxTrack3DArrayDisplay::BoxTrack3DArrayDisplay()
 {
   only_edge_property_ = new rviz_common::properties::BoolProperty(
     "Only Edge", false, "Display only edges of the boxes", this, SLOT(updateEdge()));
@@ -36,7 +36,7 @@ BoxTrackArrayDisplay::BoxTrackArrayDisplay()
   color = Qt::yellow;
 }
 
-BoxTrackArrayDisplay::~BoxTrackArrayDisplay()
+BoxTrack3DArrayDisplay::~BoxTrack3DArrayDisplay()
 {
   delete only_edge_property_;
   delete line_width_property_;
@@ -45,13 +45,13 @@ BoxTrackArrayDisplay::~BoxTrackArrayDisplay()
   delete show_identifier_property_;
 }
 
-void BoxTrackArrayDisplay::onInitialize()
+void BoxTrack3DArrayDisplay::onInitialize()
 {
   RTDClass::onInitialize();
   m_marker_common->initialize(context_, scene_node_);
 
   topic_property_->setValue("box_track_array");
-  topic_property_->setDescription("BoxTrackArray topic to subscribe to.");
+  topic_property_->setDescription("BoxTrack3DArray topic to subscribe to.");
 
   line_width_property_->setMax(0.1);
   line_width_property_->setMin(0.01);
@@ -68,14 +68,14 @@ void BoxTrackArrayDisplay::onInitialize()
   show_identifier_ = show_identifier_property_->getBool();
 }
 
-void BoxTrackArrayDisplay::load(const rviz_common::Config & config)
+void BoxTrack3DArrayDisplay::load(const rviz_common::Config & config)
 {
   Display::load(config);
   m_marker_common->load(config);
 }
 
-void BoxTrackArrayDisplay::processMessage(
-  BoxTrackArray::ConstSharedPtr msg)
+void BoxTrack3DArrayDisplay::processMessage(
+  BoxTrack3DArray::ConstSharedPtr msg)
 {
   latest_msg = msg;
   if (!only_edge_) {
@@ -85,19 +85,19 @@ void BoxTrackArrayDisplay::processMessage(
   }
 }
 
-void BoxTrackArrayDisplay::update(float wall_dt, float ros_dt)
+void BoxTrack3DArrayDisplay::update(float wall_dt, float ros_dt)
 {
   m_marker_common->update(wall_dt, ros_dt);
 }
 
-void BoxTrackArrayDisplay::reset()
+void BoxTrack3DArrayDisplay::reset()
 {
   RosTopicDisplay::reset();
   m_marker_common->clearMarkers();
   edges_.clear();
 }
 
-void BoxTrackArrayDisplay::updateEdge()
+void BoxTrack3DArrayDisplay::updateEdge()
 {
   only_edge_ = only_edge_property_->getBool();
   if (only_edge_) {
@@ -115,7 +115,7 @@ void BoxTrackArrayDisplay::updateEdge()
   }
 }
 
-void BoxTrackArrayDisplay::updateLineWidth()
+void BoxTrack3DArrayDisplay::updateLineWidth()
 {
   line_width = line_width_property_->getFloat();
   if (latest_msg) {
@@ -123,7 +123,7 @@ void BoxTrackArrayDisplay::updateLineWidth()
   }
 }
 
-void BoxTrackArrayDisplay::updateAlpha()
+void BoxTrack3DArrayDisplay::updateAlpha()
 {
   alpha = alpha_property_->getFloat();
   if (latest_msg) {
@@ -131,7 +131,7 @@ void BoxTrackArrayDisplay::updateAlpha()
   }
 }
 
-void BoxTrackArrayDisplay::updateColor()
+void BoxTrack3DArrayDisplay::updateColor()
 {
   color = color_property_->getColor();
   if (latest_msg) {
@@ -139,7 +139,7 @@ void BoxTrackArrayDisplay::updateColor()
   }
 }
 
-void BoxTrackArrayDisplay::updateShowScores()
+void BoxTrack3DArrayDisplay::updateShowScores()
 {
   show_score_ = show_score_property_->getBool();
   if (latest_msg) {
@@ -147,7 +147,7 @@ void BoxTrackArrayDisplay::updateShowScores()
   }
 }
 
-void BoxTrackArrayDisplay::updateShowIdentifiers()
+void BoxTrack3DArrayDisplay::updateShowIdentifiers()
 {
   show_identifier_ = show_identifier_property_->getBool();
   if (latest_msg) {
@@ -159,4 +159,4 @@ void BoxTrackArrayDisplay::updateShowIdentifiers()
 
 // Export the plugin
 #include <pluginlib/class_list_macros.hpp>  // NOLINT
-PLUGINLIB_EXPORT_CLASS(rviz_plugins::BoxTrackArrayDisplay, rviz_common::Display)
+PLUGINLIB_EXPORT_CLASS(rviz_plugins::BoxTrack3DArrayDisplay, rviz_common::Display)

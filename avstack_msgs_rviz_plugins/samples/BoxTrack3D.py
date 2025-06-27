@@ -24,8 +24,6 @@ from rclpy.node import Node
 from std_msgs.msg import Header
 from vision_msgs.msg import BoundingBox3D
 
-from avstack_msgs.msg import BoxTrack
-
 
 def quaternion_about_axis(angle, axis):
     axis = array(axis)
@@ -37,10 +35,10 @@ def quaternion_about_axis(angle, axis):
     return x, y, z, w
 
 
-class PubBoxTrack(Node):
+class PubBoxTrack3D(Node):
     def __init__(self):
         super().__init__("pub_box_track_sample")
-        self._pub = self.create_publisher(BoxTrack, "box_track", 10)
+        self._pub = self.create_publisher(BoxTrack3D, "box_track", 10)
         self._timer = self.create_timer(0.1, self.pub_sample)
         self._counter = 0
         self._header = Header()
@@ -76,7 +74,7 @@ class PubBoxTrack(Node):
         velocity.z = 0.0
 
         # Create a single ObjectState message
-        trk = BoxTrack()
+        trk = BoxTrack3D()
         trk.obj_type = "vehicle"
         trk.box = bbox
         trk.velocity = velocity
@@ -88,7 +86,7 @@ class PubBoxTrack(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = PubBoxTrack()
+    node = PubBoxTrack3D()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

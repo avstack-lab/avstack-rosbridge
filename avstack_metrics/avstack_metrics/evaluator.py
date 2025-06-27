@@ -4,7 +4,7 @@ from avapi.evaluation.metrics.ospa import OspaMetric
 from avstack.modules.assignment import gnn_single_frame_assign
 from avstack_bridge.objects import ObjectStateBridge
 from avstack_bridge.tracks import TrackBridge
-from avstack_msgs.msg import BoxTrackArray, ObjectStateArray, TrackingMetrics
+from avstack_msgs.msg import BoxTrack3DArray, ObjectStateArray, TrackingMetrics
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from rclpy.node import Node
 
@@ -23,7 +23,7 @@ class MetricsEvalator(Node):
 
         # tracks topic
         self.subscriber_tracks = Subscriber(
-            self, BoxTrackArray, f"/tracks", qos_profile=qos
+            self, BoxTrack3DArray, f"/tracks", qos_profile=qos
         )
 
         # truths topic
@@ -44,7 +44,7 @@ class MetricsEvalator(Node):
 
     def receive(
         self,
-        msg_tracks: BoxTrackArray,
+        msg_tracks: BoxTrack3DArray,
         msg_truths: ObjectStateArray,
         assign_radius: float = 2.0,
     ):

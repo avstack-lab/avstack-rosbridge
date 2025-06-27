@@ -1,5 +1,5 @@
 std_msgs/Header header
 
-BoxTrack[] tracks
+BoxTrack3D[] tracks
 
 string sender_id

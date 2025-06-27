@@ -59,7 +59,7 @@ except ImportError:
 from sensor_msgs_py.point_cloud2 import create_cloud, read_points
 
 from avstack_bridge.base import Bridge
-from avstack_msgs.msg import BoxTrack, ObjectState
+from avstack_msgs.msg import BoxTrack3D, ObjectState
 
 
 def to_msg_msg(msg):
@@ -236,13 +236,13 @@ def do_transform_box(box: BoundingBox3D, tf: TransformStamped) -> BoundingBox3D:
 tf2_ros.TransformRegistration().add(BoundingBox3D, do_transform_box)
 
 
-def do_transform_boxtrack(track: BoxTrack, tf: TransformStamped) -> BoxTrack:
+def do_transform_BoxTrack3D(track: BoxTrack3D, tf: TransformStamped) -> BoxTrack3D:
     p_tf = Bridge.ndarray_to_list(
         do_transform_boxtrack_covariance(Bridge.list_to_2d_ndarray(track.p), tf)
     )
     box_tf = do_transform_box(track.box, tf)
     v_tf = do_transform_vector3(Vector3Stamped(vector=track.velocity), tf).vector
-    track_tf = BoxTrack(
+    track_tf = BoxTrack3D(
         header=tf.header,
         obj_type=track.obj_type,
         box=box_tf,
@@ -255,7 +255,7 @@ def do_transform_boxtrack(track: BoxTrack, tf: TransformStamped) -> BoxTrack:
     return track_tf
 
 
-tf2_ros.TransformRegistration().add(BoxTrack, do_transform_boxtrack)
+tf2_ros.TransformRegistration().add(BoxTrack3D, do_transform_BoxTrack3D)
 
 
 def do_transform_boxtrack_covariance(

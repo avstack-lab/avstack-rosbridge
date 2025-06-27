@@ -29,13 +29,13 @@ def generate_launch_description():
         [
             Node(
                 package="avstack_msgs_rviz_plugins",
-                executable="BoxTrack.py",
+                executable="BoxTrack3D.py",
                 name="boxtrack_test",
             ),
             Node(
                 package="avstack_msgs_rviz_plugins",
-                executable="BoxTrackArray.py",
-                name="boxtrackarray_test",
+                executable="BoxTrack3DArray.py",
+                name="BoxTrack3DArray_test",
             ),
             Node(
                 package="avstack_msgs_rviz_plugins",

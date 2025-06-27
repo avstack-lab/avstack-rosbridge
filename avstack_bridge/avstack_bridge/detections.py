@@ -23,7 +23,7 @@ class DetectionBridge:
     @staticmethod
     def detection_to_avstack(
         det_msg: Union[RosDetection2D, RosDetection3D],
-        noise: np.ndarray = np.array([1, 1, 1, 0.25, 0.25, 0.25]) ** 2,
+        noise: np.ndarray,
     ) -> BoxDetection:
 
         # get common attributes
@@ -51,7 +51,8 @@ class DetectionBridge:
 
     @staticmethod
     def detectionarray_to_avstack(
-        dets_msg: RosDetection3DArray, noise: np.ndarray
+        dets_msg: Union[RosDetection2DArray, RosDetection3DArray],
+        noise: np.ndarray,
     ) -> DataContainer:
         timestamp = Bridge.rostime_to_time(dets_msg.header.stamp)
         dets = [

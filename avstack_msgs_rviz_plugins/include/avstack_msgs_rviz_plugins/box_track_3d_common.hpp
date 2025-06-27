@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_COMMON_HPP_
-#define AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_COMMON_HPP_
+#ifndef AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_3D_COMMON_HPP_
+#define AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_3D_COMMON_HPP_
 
 #include <memory>
 #include <string>
@@ -28,27 +28,27 @@
 #include <rviz_default_plugins/displays/marker_array/marker_array_display.hpp>
 #include <rviz_rendering/objects/billboard_line.hpp>
 
-#include <avstack_msgs/msg/box_track.hpp>
-#include <avstack_msgs/msg/box_track_array.hpp>
+#include <avstack_msgs/msg/box_track3_d.hpp>
+#include <avstack_msgs/msg/box_track3_d_array.hpp>
 
 typedef std::shared_ptr<rviz_rendering::BillboardLine> BillboardLinePtr;
 
 namespace rviz_plugins
 {
 template<class MessageType>
-class BoxTrackCommon : public rviz_common::RosTopicDisplay<MessageType>
+class BoxTrack3DCommon : public rviz_common::RosTopicDisplay<MessageType>
 {
 public:
   using MarkerCommon = rviz_default_plugins::displays::MarkerCommon;
   using Marker = visualization_msgs::msg::Marker;
-  using BoxTrack = avstack_msgs::msg::BoxTrack;
-  using BoxTrackArray = avstack_msgs::msg::BoxTrackArray;
+  using BoxTrack3D = avstack_msgs::msg::BoxTrack3D;
+  using BoxTrack3DArray = avstack_msgs::msg::BoxTrack3DArray;
 
-  BoxTrackCommon()
+  BoxTrack3DCommon()
   : rviz_common::RosTopicDisplay<MessageType>(), line_width(0.05), alpha(),
     m_marker_common(std::make_unique<MarkerCommon>(
         this)), color(Qt::yellow) {}
-  ~BoxTrackCommon() {}
+  ~BoxTrack3DCommon() {}
 
 protected:
   float line_width, alpha;
@@ -60,7 +60,7 @@ protected:
 
 
   visualization_msgs::msg::Marker::SharedPtr get_marker(
-    const avstack_msgs::msg::BoxTrack & trk)
+    const avstack_msgs::msg::BoxTrack3D & trk)
   {
     auto marker = std::make_shared<Marker>();
 
@@ -77,7 +77,7 @@ protected:
 
     if (trk.box.size.x < 0.0 || trk.box.size.y < 0.0 || trk.box.size.z < 0.0) {
       std::ostringstream oss;
-      oss << "Error received BoxTrack message with size value less than zero.\n";
+      oss << "Error received BoxTrack3D message with size value less than zero.\n";
       oss << "X: " << trk.box.size.x << " Y: " << trk.box.size.y << " Z: " << trk.box.size.z;
       RVIZ_COMMON_LOG_ERROR_STREAM(oss.str());
       this->setStatus(
@@ -85,7 +85,7 @@ protected:
           oss.str()));
     }
 
-    // Some systems can return BoxTrack messages with one dimension set to zero.
+    // Some systems can return BoxTrack3D messages with one dimension set to zero.
     // (for example Isaac Sim can have a mesh that is only a plane)
     // This is not supported by Rviz markers so set the scale to a small value if this happens.
     if (trk.box.size.x < 1e-4) {
@@ -108,7 +108,7 @@ protected:
   }
 
   void showBoxes(
-    const BoxTrackArray::ConstSharedPtr & msg,
+    const BoxTrack3DArray::ConstSharedPtr & msg,
     const bool show_score,
     const bool show_identifier)
   {
@@ -137,7 +137,7 @@ protected:
   }
 
   void showBoxes(
-    const BoxTrack::ConstSharedPtr & msg,
+    const BoxTrack3D::ConstSharedPtr & msg,
     const bool show_score,
     const bool show_identifier)
   {
@@ -179,7 +179,7 @@ protected:
   }
 
   void showEdges(
-    const BoxTrackArray::ConstSharedPtr & msg,
+    const BoxTrack3DArray::ConstSharedPtr & msg,
     const bool show_score,
     const bool show_identifier)
   {
@@ -190,7 +190,7 @@ protected:
     allocateBillboardLines(msg->tracks.size());
 
     for (size_t idx = 0; idx < msg->tracks.size(); idx++) {
-      avstack_msgs::msg::BoxTrack trk = msg->tracks[idx];
+      avstack_msgs::msg::BoxTrack3D trk = msg->tracks[idx];
       if (show_score) {
         ShowScore(msg->tracks[idx], msg->tracks[idx].score, idx);
       }
@@ -290,7 +290,7 @@ protected:
   }
 
   void showEdges(
-    const BoxTrack::ConstSharedPtr & msg,
+    const BoxTrack3D::ConstSharedPtr & msg,
     const bool show_score,
     const bool show_identifier)
   {
@@ -405,7 +405,7 @@ protected:
   }
 
   void ShowScore(
-    const avstack_msgs::msg::BoxTrack track,
+    const avstack_msgs::msg::BoxTrack3D track,
     const double score,
     const size_t idx)
   {
@@ -447,7 +447,7 @@ protected:
   }
 
   void ShowIdentifier(
-    const avstack_msgs::msg::BoxTrack track,
+    const avstack_msgs::msg::BoxTrack3D track,
     const int identifier,
     const size_t idx)
   {
@@ -490,4 +490,4 @@ protected:
 };
 }  // namespace rviz_plugins
 
-#endif  // AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_COMMON_HPP_
+#endif  // AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_3D_COMMON_HPP_

@@ -2,24 +2,24 @@
 
     <!-- Displays plugins -->
     <class
-      name="avstack_msgs_rviz_plugins/BoxTrack"
-      type="rviz_plugins::BoxTrackDisplay"
+      name="avstack_msgs_rviz_plugins/BoxTrack3D"
+      type="rviz_plugins::BoxTrack3DDisplay"
       base_class_type="rviz_common::Display"
     >
       <description>
-        Display BoxTrack via markers or edges
+        Display BoxTrack3D via markers or edges
       </description>
-      <message_type>avstack_msgs::msg::BoxTrack</message_type>
+      <message_type>avstack_msgs::msg::BoxTrack3D</message_type>
     </class>
     <class
-      name="avstack_msgs_rviz_plugins/BoxTrackArray"
-      type="rviz_plugins::BoxTrackArrayDisplay"
+      name="avstack_msgs_rviz_plugins/BoxTrack3DArray"
+      type="rviz_plugins::BoxTrack3DArrayDisplay"
       base_class_type="rviz_common::Display"
     >
       <description>
-        Display BoxTrack Array via markers or edges
+        Display BoxTrack3D Array via markers or edges
       </description>
-      <message_type>avstack_msgs::msg::BoxTrackArray</message_type>
+      <message_type>avstack_msgs::msg::BoxTrack3DArray</message_type>
     </class>
 
     <class

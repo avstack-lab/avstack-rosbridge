@@ -13,17 +13,19 @@ from avstack_bridge import Bridge
 from avstack_bridge.detections import DetectionBridge
 from avstack_bridge.tracks import TrackBridge
 from avstack_bridge.transform import do_transform_detection3d
-from avstack_msgs.msg import BoxTrackArray
+from avstack_msgs.msg import BoxTrack3DArray
 
 
-class BoxTracker(Node):
+class BoxTracker3D(Node):
     def __init__(self):
         super().__init__("tracker")
         self.declare_parameter("tracking_in_global", False)
 
         # initialize model
         self.tracking_in_global = self.get_parameter("tracking_in_global").value
-        self.model = BasicBoxTracker3D(check_reference=False)
+        self.model = BasicBoxTracker3D(
+            threshold_coast=2, threshold_confirmed=3, check_reference=False
+        )
         self.get_logger().info("Initialized BasicBoxTracker3D")
 
         qos_profile = qos.QoSProfile(
@@ -55,7 +57,7 @@ class BoxTracker(Node):
 
         # publish 3d tracks
         self.publisher_trks = self.create_publisher(
-            BoxTrackArray,
+            BoxTrack3DArray,
             "tracks_3d",
             qos_profile=qos_profile,
         )
@@ -106,7 +108,7 @@ class BoxTracker(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    tracker = BoxTracker()
+    tracker = BoxTracker3D()
 
     rclpy.spin(tracker)
 

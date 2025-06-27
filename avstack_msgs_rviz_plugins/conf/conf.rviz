@@ -6,8 +6,8 @@ Panels:
       Expanded:
         - /ObjectState1
         - /ObjectStateArray1
-        - /BoxTrack1
-        - /BoxTrackArray1
+        - /BoxTrack3D1
+        - /BoxTrack3DArray1
       Splitter Ratio: 0.5
     Tree Height: 746
   - Class: rviz_common/Selection
@@ -82,11 +82,11 @@ Visualization Manager:
         Value: object_state_array
       Value: true
     - Alpha: 1
-      Class: avstack_msgs_rviz_plugins/BoxTrack
+      Class: avstack_msgs_rviz_plugins/BoxTrack3D
       Color: 255; 255; 0
       Enabled: true
       Line Width: 0.05000000074505806
-      Name: BoxTrack
+      Name: BoxTrack3D
       Namespaces:
         {}
       Only Edge: true
@@ -98,11 +98,11 @@ Visualization Manager:
         Value: box_track
       Value: true
     - Alpha: 1
-      Class: avstack_msgs_rviz_plugins/BoxTrackArray
+      Class: avstack_msgs_rviz_plugins/BoxTrack3DArray
       Color: 28; 113; 216
       Enabled: true
       Line Width: 0.05000000074505806
-      Name: BoxTrackArray
+      Name: BoxTrack3DArray
       Namespaces:
         {}
       Only Edge: true

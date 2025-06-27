@@ -14,7 +14,7 @@ from avstack_bridge import Bridge
 from avstack_bridge.detections import DetectionBridge
 from avstack_bridge.tracks import TrackBridge
 from avstack_bridge.transform import do_transform_detection3d
-from avstack_msgs.msg import BoxTrackArray
+from avstack_msgs.msg import BoxTrack3DArray
 
 
 class MultiPlatformBoxTracker(Node):
@@ -66,7 +66,7 @@ class MultiPlatformBoxTracker(Node):
 
         # publish tracks from command center
         self.publisher_trks = self.create_publisher(
-            BoxTrackArray,
+            BoxTrack3DArray,
             "tracks_3d",
             qos_profile=qos,
         )

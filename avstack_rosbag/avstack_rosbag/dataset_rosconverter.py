@@ -89,7 +89,7 @@ class DatasetRosConverter:
         # centralized fusion (**in global**)
         if "fusion" in alg_out:
             fusion_msgs = {
-                "type": "avstack_msgs/msg/BoxTrackArray",
+                "type": "avstack_msgs/msg/BoxTrack3DArray",
                 "data": TrackBridge.avstack_to_tracks(
                     tracks=alg_out["fusion"],
                     header=global_header,
@@ -288,7 +288,7 @@ class DatasetRosConverter:
                         ]
                         if tracks_global is not None:
                             sensor_track_msgs[sensor_name] = {
-                                "type": "avstack_msgs/msg/BoxTrackArray",
+                                "type": "avstack_msgs/msg/BoxTrack3DArray",
                                 "data": TrackBridge.avstack_to_tracks(
                                     tracks=tracks_global,
                                     header=global_header,

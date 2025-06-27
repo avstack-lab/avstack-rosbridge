@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_HPP_
-#define AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_HPP_
+#ifndef AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_3D_ARRAY_HPP_
+#define AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_3D_ARRAY_HPP_
 
 #include <QWidget>
 #include <memory>
@@ -26,40 +26,42 @@
 #include <rviz_default_plugins/displays/marker/markers/text_view_facing_marker.hpp>
 #include <rviz_rendering/objects/billboard_line.hpp>
 
+
+#include "avstack_msgs_rviz_plugins/box_track_3d_common.hpp"
 #include "avstack_msgs_rviz_plugins/visibility_control.hpp"
-#include "avstack_msgs_rviz_plugins/box_track_common.hpp"
 
 typedef std::shared_ptr<rviz_rendering::BillboardLine> BillboardLinePtr;
 
 namespace rviz_plugins
 {
 
-class BoxTrackDisplay
-  : public BoxTrackCommon<avstack_msgs::msg::BoxTrack>
+class BoxTrack3DArrayDisplay
+  : public BoxTrack3DCommon<avstack_msgs::msg::BoxTrack3DArray>
 {
   Q_OBJECT
 
 public:
   using Marker = visualization_msgs::msg::Marker;
-  using BoxTrack = avstack_msgs::msg::BoxTrack;
+  using BoxTrack3D = avstack_msgs::msg::BoxTrack3D;
+  using BoxTrack3DArray = avstack_msgs::msg::BoxTrack3DArray;
 
-  BOX_TRACK_DISPLAY_HPP_PUBLIC
-  BoxTrackDisplay();
-  BOX_TRACK_DISPLAY_HPP_PUBLIC
-  ~BoxTrackDisplay();
-  BOX_TRACK_DISPLAY_HPP_PUBLIC
+  BOX_TRACK_3D_ARRAY_DISPLAY_HPP_PUBLIC
+  BoxTrack3DArrayDisplay();
+  BOX_TRACK_3D_ARRAY_DISPLAY_HPP_PUBLIC
+  ~BoxTrack3DArrayDisplay();
+  BOX_TRACK_3D_ARRAY_DISPLAY_HPP_PUBLIC
   void onInitialize() override;
-  BOX_TRACK_DISPLAY_HPP_PUBLIC
+  BOX_TRACK_3D_ARRAY_DISPLAY_HPP_PUBLIC
   void load(const rviz_common::Config & config) override;
-  BOX_TRACK_DISPLAY_HPP_PUBLIC
+  BOX_TRACK_3D_ARRAY_DISPLAY_HPP_PUBLIC
   void update(float wall_dt, float ros_dt) override;
-  BOX_TRACK_DISPLAY_HPP_PUBLIC
+  BOX_TRACK_3D_ARRAY_DISPLAY_HPP_PUBLIC
   void reset() override;
 
 private:
   // Convert boxes into markers, push them to the display queue
-  void processMessage(BoxTrack::ConstSharedPtr msg) override;
-  BoxTrack::ConstSharedPtr latest_msg;
+  void processMessage(BoxTrack3DArray::ConstSharedPtr msg) override;
+  BoxTrack3DArray::ConstSharedPtr latest_msg;
 
 protected:
   bool only_edge_, show_score_, show_identifier_;
@@ -80,4 +82,4 @@ protected Q_SLOTS:
 };
 }  // namespace rviz_plugins
 
-#endif  // AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_HPP_
+#endif  // AVSTACK_MSGS_RVIZ_PLUGINS__BOX_TRACK_3D_ARRAY_HPP_
